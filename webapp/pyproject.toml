@@ -1,0 +1,11 @@
+[tool.ruff]
+select = ["E", "F", "I"]
+[tool.ruff.per-file-ignores]
+"__init__.py" = ["F401"]
+
+[tool.pyright]
+venvPath = "."
+venv = ".venv"
+
+[tool.django-stubs]
+django_settings_module = "webapp.settings"
