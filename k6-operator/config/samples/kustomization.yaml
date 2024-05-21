@@ -1,0 +1,4 @@
+## Append samples of your project ##
+resources:
+- loadtesting_v1alpha1_testrun.yaml
+#+kubebuilder:scaffold:manifestskustomizesamples
