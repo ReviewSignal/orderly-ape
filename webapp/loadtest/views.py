@@ -2,7 +2,7 @@ from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from .models import TestRun, TestRunLocation
+from .models import TestRunLocation
 from .serializers import JobSerializer
 
 
@@ -12,23 +12,29 @@ class WorkersJobsViewSet(
     mixins.UpdateModelMixin,
     viewsets.GenericViewSet,
 ):
-    queryset = TestRunLocation.objects.none()
     serializer_class = JobSerializer
+    queryset = TestRunLocation.objects.select_related("test_run").all()
+    lookup_field = "test_run__name"
 
     def get_location(self):
         return self.kwargs.get("location", None)
 
     def get_queryset(self):
-        queryset = TestRunLocation.objects
+        name = self.kwargs.get(self.lookup_field)
+        qs = self.queryset
+
         if "location" not in self.kwargs:
-            return queryset.none()
+            return TestRunLocation.objects.none()
+
+        if name:
+            qs = qs.filter(test_run__name=name)
 
         if "location" in self.kwargs:
-            queryset = queryset.filter(location=self.kwargs["location"])
+            qs = qs.filter(location=self.kwargs["location"])
 
         # if self.request.user.is_authenticated:
         #     queryset = queryset.filter(user=self.request.user)
-        return queryset
+        return qs
 
     @action(detail=True, methods=["post"])
     def accept(self, request, *args, **kwargs):

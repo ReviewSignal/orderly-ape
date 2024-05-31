@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from rest_framework.reverse import reverse
 
 from .models import TestRun, TestRunLocation
 
@@ -9,12 +10,21 @@ class TestRunSerializer(serializers.ModelSerializer):
 
     class Meta:  # pyright: ignore [reportIncompatibleVariableOverride]
         model = TestRun
-        fields = "__all__"
+        exclude = ["id", "name"]
 
 
-class JobSerializer(serializers.ModelSerializer):
+class JobSerializer(serializers.HyperlinkedModelSerializer):
+    name = serializers.CharField(source="test_run.name", read_only=True)
+    url = serializers.SerializerMethodField()
     test_run = TestRunSerializer(read_only=True)
     assigned_segments = serializers.ListField(read_only=True)
+
+    def get_url(self, obj):
+        return reverse(
+            "testrunlocation-detail",
+            kwargs={"location": obj.location, "test_run__name": obj.test_run.name},
+            request=self.context.get("request"),
+        )
 
     def validate_status(self, status):
         available_target_statuses = [
