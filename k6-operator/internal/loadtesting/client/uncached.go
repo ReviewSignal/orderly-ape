@@ -102,7 +102,7 @@ func (c *UncachedClient) Get(ctx context.Context, id string, obj runtime.Object)
 	realType := reflect.Indirect(reflect.ValueOf(obj))
 	resp, respErr := c.client.R().
 		SetResult(realType.Interface()).
-		SetPathParams(map[string]string{"locationName": "eu-frankfurt"}).
+		SetPathParams(map[string]string{"locationName": c.Region}).
 		SetContext(ctx).
 		Get(endpoint)
 
@@ -136,8 +136,8 @@ func (c *UncachedClient) Watch(obj runtime.Object) (<-chan runtime.Object, error
 					time.Sleep(8 * time.Second)
 				}
 
-				for _, item := range objList.Items {
-					ch <- &item
+				for idx := range objList.Items {
+					ch <- &objList.Items[idx]
 				}
 			}
 		}

@@ -2,7 +2,6 @@ package api
 
 import (
 	"fmt"
-	"strconv"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -12,7 +11,6 @@ import (
 )
 
 type TestRun struct {
-	Name         string   `json:"name"`
 	CreatedAt    string   `json:"created_at"`
 	UpdatedAt    string   `json:"updated_at"`
 	Target       string   `json:"target"`
@@ -25,7 +23,8 @@ type TestRun struct {
 // Job is a struct that represents a job to be executed by the worker.
 // It is exposed by the web application trough the workers API.
 type Job struct {
-	ID                int64    `json:"id"`
+	Name              string   `json:"name"`
+	URL               string   `json:"url"`
 	Location          string   `json:"location"`
 	Status            string   `json:"status"`
 	StatusDescription string   `json:"status_description"`
@@ -57,11 +56,11 @@ func (o *JobList) SetItems(items []runtime.Object) {
 func (o *Job) ToK8SResource() client.Object {
 	t := v1alpha1.TestRun{}
 
-	t.ObjectMeta.Name = o.TestRun.Name
+	t.ObjectMeta.Name = o.Name
 	t.ObjectMeta.Namespace = "default"
 
 	t.ObjectMeta.Annotations = map[string]string{
-		"loadtesting.reviewsignal.com/id":         fmt.Sprintf("%d", o.ID),
+		"loadtesting.reviewsignal.com/url":        fmt.Sprintf("%d", o.URL),
 		"loadtesting.reviewsignal.com/created_at": o.TestRun.CreatedAt,
 		"loadtesting.reviewsignal.com/updated_at": o.TestRun.UpdatedAt,
 		"loadtesting.reviewsignal.com/location":   o.Location,
@@ -82,11 +81,9 @@ func (o *Job) ToK8SResource() client.Object {
 }
 
 func (o *Job) FromK8SResource(t *v1alpha1.TestRun) {
-	id, _ := strconv.ParseInt(t.ObjectMeta.Annotations["loadtesting.reviewsignal.com/id"], 10, 32)
-
-	o.ID = id
+	o.Name = t.ObjectMeta.Name
+	o.URL = t.ObjectMeta.Annotations["loadtesting.reviewsignal.com/url"]
 	o.TestRun = TestRun{
-		Name:         t.ObjectMeta.Name,
 		CreatedAt:    t.ObjectMeta.Annotations["loadtesting.reviewsignal.com/created_at"],
 		UpdatedAt:    t.ObjectMeta.Annotations["loadtesting.reviewsignal.com/updated_at"],
 		Target:       t.Spec.Target,
