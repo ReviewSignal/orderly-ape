@@ -6,6 +6,7 @@ from .models import TestRun, TestRunLocation
 
 class TestRunSerializer(serializers.ModelSerializer):
     completed = serializers.BooleanField(read_only=True)
+    ready = serializers.BooleanField(read_only=True)
     segments = serializers.ListField(read_only=True)
 
     class Meta:  # pyright: ignore [reportIncompatibleVariableOverride]
@@ -27,29 +28,34 @@ class JobSerializer(serializers.HyperlinkedModelSerializer):
         )
 
     def validate_status(self, status):
+        if self.instance and status == self.instance.status:
+            return status
+
         available_target_statuses = [
             t.target for t in self.instance.get_available_status_transitions()
         ]
 
         if self.instance and status not in available_target_statuses:
-            raise serializers.ValidationError("Invalid status transition")
+            raise serializers.ValidationError(
+                f"Invalid status transition from `{self.instance.status}` to `{status}`"
+            )
 
         return status
 
-    def update(self, instance, validated_data):
+    def update(self, instance: TestRunLocation, validated_data: dict):
         status = validated_data.get("status")
-        if status:
+
+        if status and instance.status != status:
             transitions = [
                 t
-                for t in instance.get_available_status_transitions()
+                for t in instance.get_available_status_transitions()  # pyright: ignore [reportAttributeAccessIssue]
                 if t.target == status
             ]
 
             for t in transitions:
                 t.method(instance)
 
-            instance.save()
-        return instance
+        return super().update(instance, validated_data)
 
     class Meta:  # pyright: ignore [reportIncompatibleVariableOverride]
         model = TestRunLocation

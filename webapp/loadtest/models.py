@@ -24,10 +24,10 @@ class BaseBareModel(models.Model):
 class BaseTimestampedModel(models.Model):
     created_at = models.DateTimeField(
         auto_now_add=True, verbose_name=_("Created at"), db_default=Now()
-    )
+    )  # pyright: ignore [reportCallIssue]
     updated_at = models.DateTimeField(
         auto_now=True, verbose_name=_("Updated at"), db_default=Now()
-    )
+    )  # pyright: ignore [reportCallIssue]
 
     class Meta:  # pyright: ignore [reportIncompatibleVariableOverride]
         abstract = True
@@ -69,9 +69,17 @@ class TestRun(BaseNamedModel):
         default="loadtest.js", max_length=200, verbose_name=_("Test script file")
     )
 
+    start_test_at = models.DateTimeField(
+        null=True, blank=True, verbose_name=_("Start test at"), editable=False
+    )
+
     @property
     def completed(self) -> bool:
         return self.pk and self.locations.exclude(status="completed").count() == 0
+
+    @property
+    def ready(self) -> bool:
+        return self.pk and self.locations.exclude(status="ready").count() == 0
 
     @property
     def segments(self) -> list[str]:
@@ -100,9 +108,10 @@ class TestRun(BaseNamedModel):
 
 
 class TestRunLocation(BaseBareModel):
-    class State(models.TextChoices):
+    class Status(models.TextChoices):
         PENDING = "pending", _("Pending")
         QUEUED = "queued", _("Queued")
+        READY = "ready", _("Ready")
         RUNNING = "running", _("Running")
         COMPLETED = "completed", _("Completed")
         FAILED = "failed", _("Failed")
@@ -125,7 +134,7 @@ class TestRunLocation(BaseBareModel):
 
     online_workers = models.PositiveSmallIntegerField(default=0)
 
-    status = FSMField(default=State.PENDING, choices=State.choices)
+    status = FSMField(default=Status.PENDING, choices=Status.choices)
     status_description = models.TextField(blank=True)
 
     @property
@@ -157,33 +166,44 @@ class TestRunLocation(BaseBareModel):
         if self.status_description:
             return self.status_description
 
-        if self.status == State.PENDING:
+        if self.status == self.Status.PENDING:
             return _("Waiting for job to be accepted.")
-        elif self.status == State.QUEUED:
+        elif self.status == self.Status.QUEUED:
             return _("Queued for execution. Waiting for workers to start come online.")
-        elif self.status == State.RUNNING:
+        elif self.status == self.Status.READY:
+            return _("Workers are ready to start the test.")
+        elif self.status == self.Status.RUNNING:
             return _("Test is running")
-        elif self.status == State.COMPLETED:
+        elif self.status == self.Status.COMPLETED:
             return _("Test has completed successfully")
 
-    @transition(field=status, source=State.PENDING, target=State.QUEUED)
-    def enqueue(self):
+    @transition(field=status, source=Status.PENDING, target=Status.QUEUED)
+    def accept(self):
         pass
 
-    @transition(field=status, source=State.QUEUED, target=State.RUNNING)
+    @transition(field=status, source=Status.QUEUED, target=Status.READY)
+    def ready(self):
+        all_ready = (
+            self.test_run.locations.exclude(status=self.Status.READY).count() == 0
+        )
+        if all_ready:
+            self.test_run.start_test_at = Now()
+            self.test_run.save()
+
+    @transition(field=status, source=Status.READY, target=Status.RUNNING)
     def start(self):
         pass
 
-    @transition(field=status, source=State.RUNNING, target=State.COMPLETED)
+    @transition(field=status, source=Status.RUNNING, target=Status.COMPLETED)
     def finish(self):
         pass
 
-    @transition(field=status, target=State.FAILED)
+    @transition(field=status, target=Status.FAILED)
     def fail(self, message: str | None = None):
         if message:
             self.status_description = message
 
-    @transition(field=status, source=State.FAILED, target=State.PENDING)
+    @transition(field=status, source=Status.FAILED, target=Status.PENDING)
     def retry(self, message: str | None = None):
         if message:
             self.status_description = message
