@@ -6,6 +6,7 @@ import "sigs.k8s.io/controller-runtime/pkg/client"
 // It provides translation between the REST resource and the kubernetes object.
 type Object interface {
 	ToK8SResource() client.Object
+	GetName() string
 }
 
 type ObjectList interface {

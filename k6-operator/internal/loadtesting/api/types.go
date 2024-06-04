@@ -1,13 +1,20 @@
 package api
 
 import (
-	"fmt"
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/ReviewSignal/loadtesting/k6-operator/internal/loadtesting/runtime"
 
 	"github.com/ReviewSignal/loadtesting/k6-operator/api/v1alpha1"
+)
+
+const (
+	STATUS_PENDING   string = "pending"
+	STATUS_QUEUED    string = "queued"
+	STATUS_READY     string = "ready"
+	STAUTS_RUNNING   string = "running"
+	STATUS_COMPLETED string = "completed"
+	STATUS_FAILED    string = "failed"
 )
 
 type TestRun struct {
@@ -18,6 +25,9 @@ type TestRun struct {
 	SourceRef    string   `json:"source_ref"`
 	SourceScript string   `json:"source_script"`
 	Segments     []string `json:"segments"`
+	Completed    bool     `json:"completed"`
+	Ready        bool     `json:"ready"`
+	StartTestAt  string   `json:"start_test_at"`
 }
 
 // Job is a struct that represents a job to be executed by the worker.
@@ -53,14 +63,18 @@ func (o *JobList) SetItems(items []runtime.Object) {
 	}
 }
 
+func (o *Job) GetName() string {
+	return o.Name
+}
+
 func (o *Job) ToK8SResource() client.Object {
 	t := v1alpha1.TestRun{}
 
-	t.ObjectMeta.Name = o.Name
+	t.ObjectMeta.Name = o.GetName()
 	t.ObjectMeta.Namespace = "default"
 
 	t.ObjectMeta.Annotations = map[string]string{
-		"loadtesting.reviewsignal.com/url":        fmt.Sprintf("%d", o.URL),
+		"loadtesting.reviewsignal.com/url":        o.URL,
 		"loadtesting.reviewsignal.com/created_at": o.TestRun.CreatedAt,
 		"loadtesting.reviewsignal.com/updated_at": o.TestRun.UpdatedAt,
 		"loadtesting.reviewsignal.com/location":   o.Location,

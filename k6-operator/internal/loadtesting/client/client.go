@@ -10,4 +10,5 @@ type Client interface {
 	Get(ctx context.Context, id string, obj runtime.Object) error
 	List(ctx context.Context, obj runtime.ObjectList) error
 	Watch(obj runtime.Object) (<-chan runtime.Object, error)
+	Update(ctx context.Context, obj runtime.Object) error
 }

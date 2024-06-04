@@ -31,7 +31,7 @@ func NewUncachedClient(opts ...Option) (*UncachedClient, error) {
 		opt(options)
 	}
 
-	c := resty.New()
+	c := resty.New().SetDisableWarn(true)
 	c = c.SetBaseURL(options.URL).SetBasicAuth(options.Username, options.Password)
 
 	return &UncachedClient{
@@ -144,4 +144,39 @@ func (c *UncachedClient) Watch(obj runtime.Object) (<-chan runtime.Object, error
 	}()
 
 	return ch, nil
+}
+
+func (c *UncachedClient) Update(ctx context.Context, obj runtime.Object) error {
+	_, err := conversion.EnforcePtr(obj)
+	if err != nil {
+		return err
+	}
+	endpoint, err := runtime.Schema.GetEndpointForObj(obj)
+	if err != nil {
+		return err
+	}
+
+	if strings.Contains(endpoint, "%s") {
+		endpoint = fmt.Sprintf(endpoint, obj.GetName())
+	}
+
+	realType := reflect.Indirect(reflect.ValueOf(obj))
+	resp, respErr := c.client.R().
+		SetResult(realType.Interface()).
+		SetBody(obj).
+		SetPathParams(map[string]string{"locationName": c.Region}).
+		SetContext(ctx).
+		Put(endpoint)
+	if respErr != nil {
+		return respErr
+	}
+
+	if resp.StatusCode() != 200 {
+		return fmt.Errorf("unexpected status code: %d: %s", resp.StatusCode(), resp.String())
+	}
+
+	newObj := reflect.Indirect(reflect.ValueOf(resp.Result()))
+	outVal := reflect.ValueOf(obj)
+	reflect.Indirect(outVal).Set(newObj)
+	return nil
 }
