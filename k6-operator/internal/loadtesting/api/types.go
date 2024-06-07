@@ -1,6 +1,8 @@
 package api
 
 import (
+	"time"
+
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/ReviewSignal/loadtesting/k6-operator/internal/loadtesting/runtime"
@@ -12,22 +14,22 @@ const (
 	STATUS_PENDING   string = "pending"
 	STATUS_QUEUED    string = "queued"
 	STATUS_READY     string = "ready"
-	STAUTS_RUNNING   string = "running"
+	STATUS_RUNNING   string = "running"
 	STATUS_COMPLETED string = "completed"
 	STATUS_FAILED    string = "failed"
 )
 
 type TestRun struct {
-	CreatedAt    string   `json:"created_at"`
-	UpdatedAt    string   `json:"updated_at"`
-	Target       string   `json:"target"`
-	SourceRepo   string   `json:"source_repo"`
-	SourceRef    string   `json:"source_ref"`
-	SourceScript string   `json:"source_script"`
-	Segments     []string `json:"segments"`
-	Completed    bool     `json:"completed"`
-	Ready        bool     `json:"ready"`
-	StartTestAt  string   `json:"start_test_at"`
+	CreatedAt    string     `json:"created_at"`
+	UpdatedAt    string     `json:"updated_at"`
+	Target       string     `json:"target"`
+	SourceRepo   string     `json:"source_repo"`
+	SourceRef    string     `json:"source_ref"`
+	SourceScript string     `json:"source_script"`
+	Segments     []string   `json:"segments"`
+	Completed    bool       `json:"completed"`
+	Ready        bool       `json:"ready"`
+	StartTestAt  *time.Time `json:"start_test_at"`
 }
 
 // Job is a struct that represents a job to be executed by the worker.
@@ -67,11 +69,15 @@ func (o *Job) GetName() string {
 	return o.Name
 }
 
+func (o *Job) GetNamespace() string {
+	return "default"
+}
+
 func (o *Job) ToK8SResource() client.Object {
 	t := v1alpha1.TestRun{}
 
 	t.ObjectMeta.Name = o.GetName()
-	t.ObjectMeta.Namespace = "default"
+	t.ObjectMeta.Namespace = o.GetNamespace()
 
 	t.ObjectMeta.Annotations = map[string]string{
 		"loadtesting.reviewsignal.com/url":        o.URL,

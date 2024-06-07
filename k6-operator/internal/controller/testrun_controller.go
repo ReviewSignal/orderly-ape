@@ -5,14 +5,12 @@ package controller
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -27,7 +25,6 @@ import (
 
 	loadtestingv1alpha1 "github.com/ReviewSignal/loadtesting/k6-operator/api/v1alpha1"
 
-	k6api "github.com/ReviewSignal/loadtesting/k6-operator/internal/k6/api"
 	"github.com/ReviewSignal/loadtesting/k6-operator/internal/loadtesting"
 	loadtestingapi "github.com/ReviewSignal/loadtesting/k6-operator/internal/loadtesting/api"
 	loadtestingruntime "github.com/ReviewSignal/loadtesting/k6-operator/internal/loadtesting/runtime"
@@ -46,6 +43,7 @@ type TestRunReconciler struct {
 	APIClient loadtesting.Client
 	Location  string
 	clientset clientset.Interface
+	igniters  Igniters
 }
 
 //+kubebuilder:rbac:groups=loadtesting.reviewsignal.org,resources=testruns,verbs=get;list;watch;create;update;patch;delete
@@ -139,55 +137,31 @@ func (r *TestRunReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 
 	if job.TestRun.Ready {
-		for idx := range obj.Spec.AssignedSegments {
-			pod := &corev1.Pod{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      fmt.Sprintf("%s-%d", obj.Name, idx),
-					Namespace: obj.Namespace,
-				},
-			}
-
-			client := r.clientset.CoreV1().RESTClient()
-			status := k6api.StatusRequest{
-				Data: k6api.StatusData{
-					ID:   "default",
-					Type: "status",
-					Attributes: k6api.StatusAttributes{
-						Paused: falsePtr,
-					},
-				},
-			}
-			statusObj, _ := json.Marshal(status)
-
-			resp, err := client.Patch("application/json").
-				Resource("pods").
-				SubResource("proxy").
-				Namespace(pod.Namespace).
-				Name(pod.Name).
-				Suffix("/v1/status").
-				Body(statusObj).
-				DoRaw(ctx)
-
-			if err != nil {
-				return ctrl.Result{}, err
-			}
-
-			l.Info("STATUS UPDATE", "resp", string(resp), "body", string(statusObj))
+		if job.TestRun.StartTestAt == nil {
+			return ctrl.Result{}, fmt.Errorf("TestRun is ready but StartTestAt is nil")
 		}
-		// req := clientset.CoreV1().RESTClient().Get().
-		// 	Namespace(pod.Namespace).
-		// 	Resource("pods").
-		// 	Name(pod.Name).
-		// 	SubResource("proxy").
-		// 	Suffix("6565/path/to/your/api") // specify the port here
 
-		// httpClient := &http.Client{}
-		// resp, err := httpClient.Do(req.Request())
-		// if err != nil {
-		//     fmt.Println(err)
-		//     os.Exit(1)
-		// }
-		// defer resp.Body.Close()
+		igniter, err := r.createIgniter(ctx, job)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+
+		if job.Status == loadtestingapi.STATUS_READY && igniter.Started && igniter.Error == nil {
+			job.Status = loadtestingapi.STATUS_RUNNING
+			job.StatusDescription = "Worker pods are currently running k6 tests"
+			err = r.APIClient.Update(ctx, job)
+			if err != nil {
+				l.Error(err, "Failed updating job status", "job", job)
+			}
+		}
+
+		if igniter.Error != nil {
+			job.Status = loadtestingapi.STATUS_FAILED
+			err = r.APIClient.Update(ctx, job)
+			if err != nil {
+				l.Error(err, "Failed updating job status", "job", job)
+			}
+		}
 	}
 
 	return ctrl.Result{}, nil
@@ -216,7 +190,7 @@ func (r *TestRunReconciler) syncPod(ctx context.Context, owner *loadtestingv1alp
 		obj.Spec.RestartPolicy = corev1.RestartPolicyNever
 		obj.Spec.TerminationGracePeriodSeconds = &zero
 
-		command := []string{"k6", "run", "--paused", "--address", "0.0.0.0:6565",
+		command := []string{"k6", "run", "--paused", "--linger", "--address", "0.0.0.0:6565",
 			"--tag", fmt.Sprintf("job_name=%s", owner.Name),
 			"--tag", fmt.Sprintf("instance_id=%s", obj.Name),
 			"--tag", fmt.Sprintf("location=%s", r.Location),
@@ -360,6 +334,8 @@ func (r *TestRunReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	if err = mgr.Add(worker); err != nil {
 		return err
 	}
+
+	r.igniters = make(Igniters)
 
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&loadtestingv1alpha1.TestRun{}).
