@@ -89,7 +89,7 @@ class TestRun(BaseNamedModel):
         locations = self.locations.all()
         workers = sum([location.num_workers for location in locations])
 
-        return [f"{idx}/{workers}" for idx in range(1, workers + 1)]
+        return ["0"] + [f"{idx}/{workers}" for idx in range(1, workers)] + ["1"]
 
     class Meta:  # pyright: ignore [reportIncompatibleVariableOverride]
         verbose_name = _("Test Run")

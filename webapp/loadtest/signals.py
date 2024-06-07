@@ -16,6 +16,7 @@ def set_start_test_at(sender, instance: TestRunLocation, created, **kwargs):
         and test_run.start_test_at is None
         and test_run.locations.exclude(status=TestRunLocation.Status.READY).count() == 0
     ):
-        print(">>>> Setting start_test_at")
-        test_run.start_test_at = timezone.now() + timezone.timedelta(minutes=5)
+        test_run.start_test_at = (
+            timezone.now() + timezone.timedelta(seconds=20)
+        ).replace(microsecond=0)
         test_run.save()
