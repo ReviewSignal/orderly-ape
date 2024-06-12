@@ -1,8 +1,12 @@
 package api
 
 import (
+	"encoding/json"
+	"errors"
+	"strings"
 	"time"
 
+	"k8s.io/apimachinery/pkg/api/resource"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/ReviewSignal/loadtesting/k6-operator/internal/loadtesting/runtime"
@@ -19,17 +23,23 @@ const (
 	STATUS_FAILED    string = "failed"
 )
 
+type NodeSelector map[string]string
+
 type TestRun struct {
-	CreatedAt    string     `json:"created_at"`
-	UpdatedAt    string     `json:"updated_at"`
-	Target       string     `json:"target"`
-	SourceRepo   string     `json:"source_repo"`
-	SourceRef    string     `json:"source_ref"`
-	SourceScript string     `json:"source_script"`
-	Segments     []string   `json:"segments"`
-	Completed    bool       `json:"completed"`
-	Ready        bool       `json:"ready"`
-	StartTestAt  *time.Time `json:"start_test_at"`
+	CreatedAt      string            `json:"created_at"`
+	UpdatedAt      string            `json:"updated_at"`
+	Target         string            `json:"target"`
+	SourceRepo     string            `json:"source_repo"`
+	SourceRef      string            `json:"source_ref"`
+	SourceScript   string            `json:"source_script"`
+	Segments       []string          `json:"segments"`
+	Completed      bool              `json:"completed"`
+	Ready          bool              `json:"ready"`
+	StartTestAt    *time.Time        `json:"start_test_at"`
+	ResourceCPU    resource.Quantity `json:"resources_cpu"`
+	ResourceMemory resource.Quantity `json:"resources_memory"`
+	NodeSelector   NodeSelector      `json:"node_selector"`
+	DedicatedNodes bool              `json:"dedicated_nodes"`
 }
 
 // Job is a struct that represents a job to be executed by the worker.
@@ -117,6 +127,34 @@ func (o *Job) FromK8SResource(t *v1alpha1.TestRun) {
 	o.Status = t.Status.Status
 	o.StatusDescription = t.Status.Description
 	o.OnlineWorkers = t.Status.OnlineWorkers
+}
+
+// UnmarshalJSON is a custom unmarshaler for the NodeSelector type.
+// It converts from label=value space separated string to a map of label -> value
+func (o *NodeSelector) UnmarshalJSON(data []byte) error {
+	*o = make(map[string]string)
+
+	selector := ""
+	err := json.Unmarshal(data, &selector)
+	if err != nil {
+		return err
+	}
+
+	pairs := strings.Split(selector, " ")
+	for _, pair := range pairs {
+		if pair == "" {
+			continue
+		}
+		kv := strings.Split(pair, "=")
+		if len(kv) != 2 {
+			return errors.New("invalid format for key=value pair")
+		}
+		key := strings.Trim(kv[0], " ")
+		value := strings.Trim(kv[1], " ")
+		(*o)[key] = value
+	}
+	return nil
+
 }
 
 func init() {

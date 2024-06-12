@@ -73,6 +73,24 @@ class TestRun(BaseNamedModel):
         null=True, blank=True, verbose_name=_("Start test at"), editable=False
     )
 
+    resources_cpu = models.CharField(
+        default="1", max_length=16, verbose_name=_("Per-worker CPU resources")
+    )
+    resources_memory = models.CharField(
+        default="2G", max_length=16, verbose_name=_("Per-worker memory resources")
+    )
+    dedicated_nodes = models.BooleanField(
+        default=True, verbose_name=_("Run each worker on a separate node")
+    )
+    node_selector = models.CharField(
+        blank=True,
+        max_length=200,
+        verbose_name=_("Node selector"),
+        help_text=_(
+            "Kubernetes node selector to use for worker pods (eg. 'cloud.google.com/gke-nodepool=default-pool')"
+        ),
+    )
+
     @property
     def completed(self) -> bool:
         return self.pk and self.locations.exclude(status="completed").count() == 0

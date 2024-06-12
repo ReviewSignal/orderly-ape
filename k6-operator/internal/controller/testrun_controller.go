@@ -12,6 +12,7 @@ import (
 	"github.com/alessio/shellescape"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -102,7 +103,7 @@ func (r *TestRunReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	if job.Status != loadtestingapi.STATUS_COMPLETED && job.Status != loadtestingapi.STATUS_FAILED {
 		for idx := range obj.Spec.AssignedSegments {
 			segment := obj.Spec.AssignedSegments[idx]
-			err = r.syncPod(ctx, obj, idx, segment)
+			err = r.syncPod(ctx, obj, idx, job, segment)
 			if err != nil {
 				return ctrl.Result{}, err
 			}
@@ -201,7 +202,7 @@ func (r *TestRunReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	return ctrl.Result{}, nil
 }
 
-func (r *TestRunReconciler) syncPod(ctx context.Context, owner *loadtestingv1alpha1.TestRun, idx int, segment string) error {
+func (r *TestRunReconciler) syncPod(ctx context.Context, owner *loadtestingv1alpha1.TestRun, idx int, job *loadtestingapi.Job, segment string) error {
 	obj := &corev1.Pod{
 		ObjectMeta: ctrl.ObjectMeta{
 			Name:      fmt.Sprintf("%s-%d", owner.Name, idx),
@@ -223,6 +224,25 @@ func (r *TestRunReconciler) syncPod(ctx context.Context, owner *loadtestingv1alp
 
 		obj.Spec.RestartPolicy = corev1.RestartPolicyNever
 		obj.Spec.TerminationGracePeriodSeconds = &zero
+
+		obj.Spec.NodeSelector = job.TestRun.NodeSelector
+
+		if job.TestRun.DedicatedNodes && obj.Spec.Affinity == nil {
+			obj.Spec.Affinity = &corev1.Affinity{
+				PodAntiAffinity: &corev1.PodAntiAffinity{
+					RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
+						{
+							TopologyKey: corev1.LabelHostname,
+							LabelSelector: &metav1.LabelSelector{
+								MatchLabels: map[string]string{
+									"app.kubernetes.io/name": "k6",
+								},
+							},
+						},
+					},
+				},
+			}
+		}
 
 		command := []string{"k6", "run", "--paused", "--address", "0.0.0.0:6565",
 			"--tag", fmt.Sprintf("testid=%s", owner.Name),
@@ -321,6 +341,12 @@ func (r *TestRunReconciler) syncPod(ctx context.Context, owner *loadtestingv1alp
 					}},
 					LivenessProbe:  probe,
 					ReadinessProbe: probe,
+					Resources: corev1.ResourceRequirements{
+						Requests: corev1.ResourceList{
+							corev1.ResourceCPU:    job.TestRun.ResourceCPU,
+							corev1.ResourceMemory: job.TestRun.ResourceMemory,
+						},
+					},
 				},
 			)
 		}
