@@ -7,21 +7,15 @@ metadata:
     app.kubernetes.io/managed-by: kustomize
   name: testrun-editor-role
 rules:
-- apiGroups:
-  - loadtesting.reviewsignal.org
-  resources:
-  - testruns
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - loadtesting.reviewsignal.org
-  resources:
-  - testruns/status
-  verbs:
-  - get
+  - apiGroups:
+      - batchv1
+    resources:
+      - jobs
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch

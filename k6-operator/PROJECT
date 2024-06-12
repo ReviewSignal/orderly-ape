@@ -7,14 +7,4 @@ layout:
 - go.kubebuilder.io/v4
 projectName: k6-operator
 repo: github.com/ReviewSignal/loadtesting/k6-operator
-resources:
-- api:
-    crdVersion: v1
-    namespaced: true
-  controller: true
-  domain: reviewsignal.org
-  group: loadtesting
-  kind: TestRun
-  path: github.com/ReviewSignal/loadtesting/k6-operator/api/v1alpha1
-  version: v1alpha1
 version: "3"

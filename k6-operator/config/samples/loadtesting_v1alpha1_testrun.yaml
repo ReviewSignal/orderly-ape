@@ -1,9 +1,0 @@
-apiVersion: loadtesting.reviewsignal.org/v1alpha1
-kind: TestRun
-metadata:
-  labels:
-    app.kubernetes.io/name: k6-operator
-    app.kubernetes.io/managed-by: kustomize
-  name: testrun-sample
-spec:
-  # TODO(user): Add fields here

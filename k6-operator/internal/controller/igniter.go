@@ -26,6 +26,7 @@ type Igniter struct {
 	Started  bool
 	Error    error
 	Job      *loadtestingapi.Job
+	PodNames []string
 	groupCtx context.Context
 }
 
@@ -38,15 +39,16 @@ func (i *Igniter) Start(ctx context.Context, r *TestRunReconciler) error {
 		l := log.FromContext(ctx)
 		l.Info("Starting test runs")
 
-		for idx := range i.Job.AssignedSegments {
+		for _, podName := range i.PodNames {
 			pod := &corev1.Pod{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      fmt.Sprintf("%s-%d", i.Job.Name, idx),
+					Name:      podName,
 					Namespace: i.Job.GetNamespace(),
 				},
 			}
 
 			i.Go(func() error {
+				l.Info("IGNITE", "pod", pod.Name)
 				client := r.clientset.CoreV1().RESTClient()
 				status := k6api.StatusRequest{
 					Data: k6api.StatusData{
@@ -90,14 +92,28 @@ func (r *TestRunReconciler) createIgniter(ctx context.Context, job *loadtestinga
 		return nil, fmt.Errorf("job '%s' is not ready to start", job.Name)
 	}
 
+	pods, err := r.getPods(ctx, job)
+	if err != nil {
+		return nil, err
+	}
+	podNames := make([]string, len(pods))
+	for i, pod := range pods {
+		podNames[i] = pod.Name
+	}
+	if len(job.AssignedSegments) != len(podNames) {
+		return nil, fmt.Errorf("expected %d pods, got %d: %v", len(job.AssignedSegments), len(podNames), podNames)
+	}
+
 	l := log.FromContext(ctx).WithValues("job", job.Name)
 
+	// create a new context with logger
 	ctx = ctrl.LoggerInto(context.Background(), l)
 	g, ctx := errgroup.WithContext(ctx)
 
 	igniter := &Igniter{
 		Job:      job,
 		Group:    g,
+		PodNames: podNames,
 		groupCtx: ctx,
 	}
 	r.igniters[job.Name] = igniter

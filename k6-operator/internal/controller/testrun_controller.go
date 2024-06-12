@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/alessio/shellescape"
+	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -19,13 +20,12 @@ import (
 	clientset "k8s.io/client-go/kubernetes"
 	corev1util "kmodules.xyz/client-go/core/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	util "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/source"
-
-	loadtestingv1alpha1 "github.com/ReviewSignal/loadtesting/k6-operator/api/v1alpha1"
 
 	"github.com/ReviewSignal/loadtesting/k6-operator/internal/loadtesting"
 	loadtestingapi "github.com/ReviewSignal/loadtesting/k6-operator/internal/loadtesting/api"
@@ -33,8 +33,8 @@ import (
 )
 
 var (
-	zero     int64 = 0
-	truePtr  *bool = func(b bool) *bool { return &b }(true)
+	zero64   int64 = 0
+	zero32   int32 = 0
 	falsePtr *bool = func(b bool) *bool { return &b }(false)
 )
 
@@ -48,9 +48,9 @@ type TestRunReconciler struct {
 	igniters  Igniters
 }
 
-//+kubebuilder:rbac:groups=loadtesting.reviewsignal.org,resources=testruns,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=loadtesting.reviewsignal.org,resources=testruns/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=loadtesting.reviewsignal.org,resources=testruns/finalizers,verbs=update
+//+kubebuilder:rbac:groups=batch,resources=Job,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=batch,resources=Job/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=batch,resources=Job/finalizers,verbs=update
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -74,7 +74,7 @@ func (r *TestRunReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	l = l.WithValues("status", job.Status)
 	l.Info("Reconciling TestRun")
 
-	obj := &loadtestingv1alpha1.TestRun{}
+	obj := &batchv1.Job{}
 	err = r.Get(ctx, req.NamespacedName, obj)
 	if client.IgnoreNotFound(err) != nil {
 		return ctrl.Result{}, err
@@ -85,10 +85,26 @@ func (r *TestRunReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 
 	if apierrors.IsNotFound(err) {
-		obj, err = r.createTestRun(ctx, job)
+		obj, err = r.syncJob(ctx, job)
 		if err != nil {
+			job.Status = loadtestingapi.STATUS_FAILED
+			job.StatusDescription = fmt.Sprintf("Worker pods have failed running k6 tests: %s", err)
+			err = r.APIClient.Update(ctx, job)
+			if err != nil {
+				l.Error(err, "Failed updating job status", "job", job)
+			}
 			return ctrl.Result{}, err
 		}
+	}
+
+	if cond := getJobCondition(obj, batchv1.JobFailed); cond != nil {
+		job.Status = loadtestingapi.STATUS_FAILED
+		job.StatusDescription = fmt.Sprintf("Worker pods have failed running k6 tests: %s", cond.Message)
+		err = r.APIClient.Update(ctx, job)
+		if err != nil {
+			l.Error(err, "Failed updating job status", "job", job)
+		}
+		return ctrl.Result{}, nil
 	}
 
 	if job.Status == loadtestingapi.STATUS_PENDING {
@@ -100,45 +116,30 @@ func (r *TestRunReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		}
 	}
 
-	if job.Status != loadtestingapi.STATUS_COMPLETED && job.Status != loadtestingapi.STATUS_FAILED {
-		for idx := range obj.Spec.AssignedSegments {
-			segment := obj.Spec.AssignedSegments[idx]
-			err = r.syncPod(ctx, obj, idx, job, segment)
-			if err != nil {
-				return ctrl.Result{}, err
-			}
-		}
-	}
-
 	if job.Status == loadtestingapi.STATUS_QUEUED {
-		var podsReady int32
-		for idx := range obj.Spec.AssignedSegments {
-			pod := &corev1.Pod{}
-			err = r.Get(ctx, types.NamespacedName{Name: fmt.Sprintf("%s-%d", obj.Name, idx), Namespace: obj.Namespace}, pod)
-			if err == nil && isPodStableReady(pod) {
-				podsReady++
-			}
-		}
-
-		update := false
-		if podsReady != job.OnlineWorkers {
-			job.OnlineWorkers = podsReady
-			update = true
-		}
-		if int(podsReady) == len(job.AssignedSegments) {
-			job.Status = loadtestingapi.STATUS_READY
-			job.StatusDescription = "Worker pods are ready and waiting to start testing"
-			update = true
-		}
-		if update {
-			err = r.APIClient.Update(ctx, job)
+		if obj.Status.Ready != nil && int32(len(job.AssignedSegments)) == *obj.Status.Ready {
+			pods, err := r.getPods(ctx, job)
 			if err != nil {
 				return ctrl.Result{}, err
+			}
+			ready := true
+			for _, pod := range pods {
+				if !isPodStableReady(&pod) {
+					ready = false
+				}
+			}
+			if ready {
+				job.Status = loadtestingapi.STATUS_READY
+				job.StatusDescription = "Worker pods are ready and waiting to start testing"
+				err = r.APIClient.Update(ctx, job)
+				if err != nil {
+					return ctrl.Result{}, err
+				}
 			}
 		}
 	}
 
-	if job.TestRun.Ready {
+	if job.Status == loadtestingapi.STATUS_READY && job.TestRun.Ready {
 		if job.TestRun.StartTestAt == nil {
 			return ctrl.Result{}, fmt.Errorf("TestRun is ready but StartTestAt is nil")
 		}
@@ -159,6 +160,7 @@ func (r *TestRunReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 		if igniter.Error != nil {
 			job.Status = loadtestingapi.STATUS_FAILED
+			job.StatusDescription = fmt.Sprintf("Worker pods have failed running k6 tests: %s", igniter.Error)
 			err = r.APIClient.Update(ctx, job)
 			if err != nil {
 				l.Error(err, "Failed updating job status", "job", job)
@@ -167,31 +169,14 @@ func (r *TestRunReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 
 	if job.Status == loadtestingapi.STATUS_RUNNING {
-		completed := true
-		success := true
-
-		for idx := range obj.Spec.AssignedSegments {
-			pod := &corev1.Pod{}
-			err = r.Get(ctx, types.NamespacedName{Name: fmt.Sprintf("%s-%d", obj.Name, idx), Namespace: obj.Namespace}, pod)
-			if err != nil {
-				return ctrl.Result{}, err
-			}
-
-			completed = completed && isPodCompleted(pod)
-			if completed {
-				success = success && isPodSucceeded(pod)
-			}
-		}
-
-		if completed {
-			if success {
+		if obj.Status.Active == 0 {
+			if int(obj.Status.Succeeded) == len(job.AssignedSegments) {
 				job.Status = loadtestingapi.STATUS_COMPLETED
 				job.StatusDescription = "Worker pods have successfully completed running k6 tests"
 			} else {
 				job.StatusDescription = "Worker pods have failed running k6 tests"
 				job.Status = loadtestingapi.STATUS_FAILED
 			}
-
 			err = r.APIClient.Update(ctx, job)
 			if err != nil {
 				return ctrl.Result{}, err
@@ -202,33 +187,41 @@ func (r *TestRunReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	return ctrl.Result{}, nil
 }
 
-func (r *TestRunReconciler) syncPod(ctx context.Context, owner *loadtestingv1alpha1.TestRun, idx int, job *loadtestingapi.Job, segment string) error {
-	obj := &corev1.Pod{
+func (r *TestRunReconciler) syncJob(ctx context.Context, job *loadtestingapi.Job) (*batchv1.Job, error) {
+	obj := &batchv1.Job{
 		ObjectMeta: ctrl.ObjectMeta{
-			Name:      fmt.Sprintf("%s-%d", owner.Name, idx),
-			Namespace: owner.Namespace,
+			Name:      job.GetName(),
+			Namespace: job.GetNamespace(),
 		},
 	}
 	_, err := ctrl.CreateOrUpdate(ctx, r.Client, obj, func() error {
-		err := util.SetOwnerReference(owner, obj, r.Scheme)
-		if err != nil {
-			return err
-		}
-
 		if len(obj.Labels) == 0 {
 			obj.Labels = make(map[string]string)
 		}
 		obj.Labels["app.kubernetes.io/name"] = "k6"
-		obj.Labels["app.kubernetes.io/instance"] = owner.Name
-		obj.Labels["app.kubernetes.io/managed-by"] = "reviewsignal-k6-operator"
+		obj.Labels["app.kubernetes.io/instance"] = job.GetName()
+		obj.Labels["app.kubernetes.io/managed-by"] = "orderly-ape"
 
-		obj.Spec.RestartPolicy = corev1.RestartPolicyNever
-		obj.Spec.TerminationGracePeriodSeconds = &zero
+		count := int32(len(job.AssignedSegments))
+		obj.Spec.Parallelism = &count
+		obj.Spec.Completions = &count
+		obj.Spec.BackoffLimit = &zero32
+		indexed := batchv1.IndexedCompletion
+		obj.Spec.CompletionMode = &indexed
+		if job.TestRun.JobDeadline != nil {
+			activeDeadlineSeconds := int64(job.TestRun.JobDeadline.Seconds())
+			obj.Spec.ActiveDeadlineSeconds = &activeDeadlineSeconds
+		}
 
-		obj.Spec.NodeSelector = job.TestRun.NodeSelector
+		pod := &corev1.PodTemplateSpec{}
 
-		if job.TestRun.DedicatedNodes && obj.Spec.Affinity == nil {
-			obj.Spec.Affinity = &corev1.Affinity{
+		pod.Spec.RestartPolicy = corev1.RestartPolicyNever
+		pod.Spec.TerminationGracePeriodSeconds = &zero64
+
+		pod.Spec.NodeSelector = job.TestRun.NodeSelector
+
+		if job.TestRun.DedicatedNodes && pod.Spec.Affinity == nil {
+			pod.Spec.Affinity = &corev1.Affinity{
 				PodAntiAffinity: &corev1.PodAntiAffinity{
 					RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
 						{
@@ -245,24 +238,28 @@ func (r *TestRunReconciler) syncPod(ctx context.Context, owner *loadtestingv1alp
 		}
 
 		command := []string{"k6", "run", "--paused", "--address", "0.0.0.0:6565",
-			"--tag", fmt.Sprintf("testid=%s", owner.Name),
+			"--tag", fmt.Sprintf("testid=%s", job.GetName()),
 			"--tag", fmt.Sprintf("location=%s", r.Location),
-			"--tag", fmt.Sprintf("instance_id=%s-%d", r.Location, idx),
-			"--tag", fmt.Sprintf("pod_name=%s", obj.Name),
 		}
 
-		if len(owner.Spec.Segments) > 1 {
-			command = append(command, "--execution-segment-sequence", strings.Join(owner.Spec.Segments, ","))
-			command = append(command, "--execution-segment", segment)
+		var segmentsEnv []corev1.EnvVar
+		if len(job.AssignedSegments) > 1 {
+			command = append(command, "--execution-segment-sequence", strings.Join(job.TestRun.Segments, ","))
+			command = append(command, "--execution-segment", "__ASSIGNED_SEGMENT__")
+			segmentsEnv = make([]corev1.EnvVar, len(job.AssignedSegments))
+			for i, segment := range job.AssignedSegments {
+				segmentsEnv[i].Name = fmt.Sprintf("SEGMENT_%d", i)
+				segmentsEnv[i].Value = segment
+			}
 		}
 
-		command = append(command, owner.Spec.SourceScript)
+		command = append(command, job.TestRun.SourceScript)
 
 		script := shellescape.QuoteCommand(command)
+		script = strings.Replace(script, "__ASSIGNED_SEGMENT__", `"${SEGMENT_$(JOB_COMPLETION_INDEX)}"`, -1)
 
-		volumes := obj.Spec.Volumes
-		if corev1util.GetVolumeByName(volumes, "k6-script") == nil {
-			obj.Spec.Volumes = corev1util.UpsertVolume(obj.Spec.Volumes,
+		if corev1util.GetVolumeByName(pod.Spec.Volumes, "k6-script") == nil {
+			pod.Spec.Volumes = corev1util.UpsertVolume(pod.Spec.Volumes,
 				corev1.Volume{
 					Name: "k6-script",
 					VolumeSource: corev1.VolumeSource{
@@ -272,9 +269,8 @@ func (r *TestRunReconciler) syncPod(ctx context.Context, owner *loadtestingv1alp
 			)
 		}
 
-		initContainers := obj.Spec.InitContainers
-		if corev1util.GetContainerByName(initContainers, "git") == nil {
-			obj.Spec.InitContainers = corev1util.UpsertContainer(obj.Spec.InitContainers,
+		if corev1util.GetContainerByName(pod.Spec.InitContainers, "git") == nil {
+			pod.Spec.InitContainers = corev1util.UpsertContainer(pod.Spec.InitContainers,
 				corev1.Container{
 					Name:            "git",
 					Image:           "alpine/git",
@@ -285,8 +281,8 @@ func (r *TestRunReconciler) syncPod(ctx context.Context, owner *loadtestingv1alp
 							"set -eo pipefail",
 							"set -x",
 							"git init",
-							"git remote add origin https://" + owner.Spec.SourceRepo,
-							"git fetch --depth=1 origin " + owner.Spec.SourceRef,
+							"git remote add origin https://" + job.TestRun.SourceRepo,
+							"git fetch --depth=1 origin " + job.TestRun.SourceRef,
 							"git checkout FETCH_HEAD",
 						}, "\n"),
 					},
@@ -297,7 +293,6 @@ func (r *TestRunReconciler) syncPod(ctx context.Context, owner *loadtestingv1alp
 				})
 		}
 
-		containers := obj.Spec.Containers
 		probe := &corev1.Probe{
 			ProbeHandler: corev1.ProbeHandler{
 				HTTPGet: &corev1.HTTPGetAction{
@@ -307,54 +302,80 @@ func (r *TestRunReconciler) syncPod(ctx context.Context, owner *loadtestingv1alp
 				},
 			},
 		}
-		if corev1util.GetContainerByName(containers, "k6") == nil {
-			obj.Spec.Containers = corev1util.UpsertContainer(obj.Spec.Containers,
-				corev1.Container{
-					Name: "k6",
-					// Image:           "loadimpact/k6",
-					Image: "europe-west4-docker.pkg.dev/calins-playground/k6-testing/k6-influxdb:latest",
 
-					ImagePullPolicy: corev1.PullIfNotPresent,
-					WorkingDir:      "/scripts",
-					Command: []string{"/bin/sh", "-c",
-						strings.Join([]string{
-							script,
-							"EXIT_CODE=$?",
-							// 99 is the k6 exit code for ThresholdsHaveFailed.
-							// This is not an error from the operator's perspective.
-							"if [ $EXIT_CODE -ne 0 ] && [ $EXIT_CODE -ne 99 ]; then exit $EXIT_CODE; fi",
-						}, "\n"),
-					},
-					Env: []corev1.EnvVar{
-						{
-							Name:  "TARGET",
-							Value: owner.Spec.Target,
-						},
-					},
-					Ports: []corev1.ContainerPort{{
-						Name:          "http-api",
-						ContainerPort: 6565,
-					}},
-					VolumeMounts: []corev1.VolumeMount{{
-						Name:      "k6-script",
-						MountPath: "/scripts",
-					}},
-					LivenessProbe:  probe,
-					ReadinessProbe: probe,
-					Resources: corev1.ResourceRequirements{
-						Requests: corev1.ResourceList{
-							corev1.ResourceCPU:    job.TestRun.ResourceCPU,
-							corev1.ResourceMemory: job.TestRun.ResourceMemory,
-						},
+		env := []corev1.EnvVar{
+			{
+				Name:  "TARGET",
+				Value: job.TestRun.Target,
+			},
+		}
+		if segmentsEnv != nil {
+			env = corev1util.UpsertEnvVars(env, segmentsEnv...)
+		}
+
+		pod.Spec.Containers = corev1util.UpsertContainer(pod.Spec.Containers,
+			corev1.Container{
+				Name: "k6",
+				// Image:           "loadimpact/k6",
+				Image: "europe-west4-docker.pkg.dev/calins-playground/k6-testing/k6-influxdb:latest",
+
+				ImagePullPolicy: corev1.PullIfNotPresent,
+				WorkingDir:      "/scripts",
+				Command: []string{"/bin/sh", "-c",
+					strings.Join([]string{
+						script,
+						`EXIT_CODE=$?`,
+						// 99 is the k6 exit code for ThresholdsHaveFailed.
+						// This is not an error from the operator's perspective.
+						`if [ $EXIT_CODE -ne 0 ] && [ $EXIT_CODE -ne 99 ]; then exit $EXIT_CODE; fi`,
+					}, "\n"),
+				},
+				Env: env,
+				Ports: []corev1.ContainerPort{{
+					Name:          "http-api",
+					ContainerPort: 6565,
+				}},
+				VolumeMounts: []corev1.VolumeMount{{
+					Name:      "k6-script",
+					MountPath: "/scripts",
+				}},
+				LivenessProbe:  probe,
+				ReadinessProbe: probe,
+				Resources: corev1.ResourceRequirements{
+					Requests: corev1.ResourceList{
+						corev1.ResourceCPU:    job.TestRun.ResourceCPU,
+						corev1.ResourceMemory: job.TestRun.ResourceMemory,
 					},
 				},
-			)
-		}
+			},
+		)
+
+		obj.Spec.Template = *pod
 
 		return nil
 	})
 
-	return err
+	return obj, err
+}
+
+func (r *TestRunReconciler) getPods(ctx context.Context, job *loadtestingapi.Job) ([]corev1.Pod, error) {
+	pods := &corev1.PodList{}
+	err := r.Client.List(ctx, pods, client.InNamespace(job.GetNamespace()), client.MatchingLabels{
+		"batch.kubernetes.io/job-name": job.GetName(),
+	})
+	if err != nil {
+		return nil, err
+	}
+	return pods.Items, nil
+}
+
+func getJobCondition(job *batchv1.Job, conditionType batchv1.JobConditionType) *batchv1.JobCondition {
+	for _, condition := range job.Status.Conditions {
+		if condition.Type == conditionType {
+			return &condition
+		}
+	}
+	return nil
 }
 
 func isPodCompleted(pod *corev1.Pod) bool {
@@ -380,16 +401,6 @@ func isPodStableReady(pod *corev1.Pod) bool {
 		}
 	}
 	return false
-}
-
-func (r *TestRunReconciler) createTestRun(ctx context.Context, job *loadtestingapi.Job) (*loadtestingv1alpha1.TestRun, error) {
-	obj, ok := job.ToK8SResource().(*loadtestingv1alpha1.TestRun)
-	if !ok {
-		return nil, fmt.Errorf("failed to convert job to TestRun")
-	}
-
-	err := r.Create(ctx, obj)
-	return obj, err
 }
 
 // SetupWithManager sets up the controller with the Manager.
@@ -422,9 +433,23 @@ func (r *TestRunReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 	r.igniters = make(Igniters)
 
+	managedByOrderlyApe, err := predicate.LabelSelectorPredicate(
+		metav1.LabelSelector{
+			MatchLabels: map[string]string{
+				"app.kubernetes.io/managed-by": "orderly-ape",
+			},
+		},
+	)
+	if err != nil {
+		return err
+	}
+
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&loadtestingv1alpha1.TestRun{}).
-		Owns(&corev1.Pod{}).
+		For(&batchv1.Job{},
+			builder.WithPredicates(
+				managedByOrderlyApe,
+			),
+		).
 		WatchesRawSource(&source.Channel{Source: worker.C}, handler.EnqueueRequestsFromMapFunc(func(ctx context.Context, obj client.Object) []ctrl.Request {
 			return []ctrl.Request{
 				{NamespacedName: types.NamespacedName{

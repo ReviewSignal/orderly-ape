@@ -5,9 +5,9 @@ metadata:
   name: manager-role
 rules:
 - apiGroups:
-  - loadtesting.reviewsignal.org
+  - batch
   resources:
-  - testruns
+  - Job
   verbs:
   - create
   - delete
@@ -17,15 +17,15 @@ rules:
   - update
   - watch
 - apiGroups:
-  - loadtesting.reviewsignal.org
+  - batch
   resources:
-  - testruns/finalizers
+  - Job/finalizers
   verbs:
   - update
 - apiGroups:
-  - loadtesting.reviewsignal.org
+  - batch
   resources:
-  - testruns/status
+  - Job/status
   verbs:
   - get
   - patch

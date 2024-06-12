@@ -12,9 +12,8 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
+	batchv1 "k8s.io/api/batch/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	loadtestingv1alpha1 "github.com/ReviewSignal/loadtesting/k6-operator/api/v1alpha1"
 )
 
 var _ = Describe("TestRun Controller", func() {
@@ -27,13 +26,13 @@ var _ = Describe("TestRun Controller", func() {
 			Name:      resourceName,
 			Namespace: "default", // TODO(user):Modify as needed
 		}
-		testrun := &loadtestingv1alpha1.TestRun{}
+		job := &batchv1.Job{}
 
 		BeforeEach(func() {
 			By("creating the custom resource for the Kind TestRun")
-			err := k8sClient.Get(ctx, typeNamespacedName, testrun)
+			err := k8sClient.Get(ctx, typeNamespacedName, job)
 			if err != nil && errors.IsNotFound(err) {
-				resource := &loadtestingv1alpha1.TestRun{
+				resource := &batchv1.Job{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      resourceName,
 						Namespace: "default",
@@ -46,7 +45,7 @@ var _ = Describe("TestRun Controller", func() {
 
 		AfterEach(func() {
 			// TODO(user): Cleanup logic after each test, like removing the resource instance.
-			resource := &loadtestingv1alpha1.TestRun{}
+			resource := &batchv1.Job{}
 			err := k8sClient.Get(ctx, typeNamespacedName, resource)
 			Expect(err).NotTo(HaveOccurred())
 

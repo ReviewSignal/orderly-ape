@@ -7,17 +7,11 @@ metadata:
     app.kubernetes.io/managed-by: kustomize
   name: testrun-viewer-role
 rules:
-- apiGroups:
-  - loadtesting.reviewsignal.org
-  resources:
-  - testruns
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - loadtesting.reviewsignal.org
-  resources:
-  - testruns/status
-  verbs:
-  - get
+  - apiGroups:
+      - batchv1
+    resources:
+      - jobs
+    verbs:
+      - get
+      - list
+      - watch

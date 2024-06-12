@@ -6,12 +6,11 @@ import (
 	"strings"
 	"time"
 
+	batchv1 "k8s.io/api/batch/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/ReviewSignal/loadtesting/k6-operator/internal/loadtesting/runtime"
-
-	"github.com/ReviewSignal/loadtesting/k6-operator/api/v1alpha1"
 )
 
 const (
@@ -22,8 +21,6 @@ const (
 	STATUS_COMPLETED string = "completed"
 	STATUS_FAILED    string = "failed"
 )
-
-type NodeSelector map[string]string
 
 type TestRun struct {
 	CreatedAt      string            `json:"created_at"`
@@ -39,6 +36,7 @@ type TestRun struct {
 	ResourceCPU    resource.Quantity `json:"resources_cpu"`
 	ResourceMemory resource.Quantity `json:"resources_memory"`
 	NodeSelector   NodeSelector      `json:"node_selector"`
+	JobDeadline    *Duration         `json:"job_deadline"`
 	DedicatedNodes bool              `json:"dedicated_nodes"`
 }
 
@@ -84,50 +82,44 @@ func (o *Job) GetNamespace() string {
 }
 
 func (o *Job) ToK8SResource() client.Object {
-	t := v1alpha1.TestRun{}
+	obj := batchv1.Job{}
 
-	t.ObjectMeta.Name = o.GetName()
-	t.ObjectMeta.Namespace = o.GetNamespace()
+	obj.ObjectMeta.Name = o.GetName()
+	obj.ObjectMeta.Namespace = o.GetNamespace()
 
-	t.ObjectMeta.Annotations = map[string]string{
-		"loadtesting.reviewsignal.com/url":        o.URL,
-		"loadtesting.reviewsignal.com/created_at": o.TestRun.CreatedAt,
-		"loadtesting.reviewsignal.com/updated_at": o.TestRun.UpdatedAt,
-		"loadtesting.reviewsignal.com/location":   o.Location,
-	}
-	t.Spec.Target = o.TestRun.Target
-	t.Spec.SourceRepo = o.TestRun.SourceRepo
-	t.Spec.SourceRef = o.TestRun.SourceRef
-	t.Spec.SourceScript = o.TestRun.SourceScript
-	t.Spec.Workers = o.Workers
-	t.Spec.Segments = o.TestRun.Segments
-	t.Spec.AssignedSegments = o.AssignedSegments
-
-	t.Status.Status = o.Status
-	t.Status.Description = o.StatusDescription
-	t.Status.OnlineWorkers = o.OnlineWorkers
-
-	return &t
+	return &obj
 }
 
-func (o *Job) FromK8SResource(t *v1alpha1.TestRun) {
-	o.Name = t.ObjectMeta.Name
-	o.URL = t.ObjectMeta.Annotations["loadtesting.reviewsignal.com/url"]
-	o.TestRun = TestRun{
-		CreatedAt:    t.ObjectMeta.Annotations["loadtesting.reviewsignal.com/created_at"],
-		UpdatedAt:    t.ObjectMeta.Annotations["loadtesting.reviewsignal.com/updated_at"],
-		Target:       t.Spec.Target,
-		SourceRepo:   t.Spec.SourceRepo,
-		SourceRef:    t.Spec.SourceRef,
-		SourceScript: t.Spec.SourceScript,
-		Segments:     t.Spec.Segments,
-	}
-	o.Location = t.ObjectMeta.Annotations["loadtesting.reviewsignal.com/location"]
-	o.Workers = t.Spec.Workers
-	o.Status = t.Status.Status
-	o.StatusDescription = t.Status.Description
-	o.OnlineWorkers = t.Status.OnlineWorkers
+type Duration struct {
+	time.Duration
 }
+
+func (d Duration) MarshalJSON() ([]byte, error) {
+	return json.Marshal(d.String())
+}
+
+func (d *Duration) UnmarshalJSON(b []byte) error {
+	var v interface{}
+	if err := json.Unmarshal(b, &v); err != nil {
+		return err
+	}
+	switch value := v.(type) {
+	case float64:
+		d.Duration = time.Duration(value)
+		return nil
+	case string:
+		var err error
+		d.Duration, err = time.ParseDuration(value)
+		if err != nil {
+			return err
+		}
+		return nil
+	default:
+		return errors.New("invalid duration")
+	}
+}
+
+type NodeSelector map[string]string
 
 // UnmarshalJSON is a custom unmarshaler for the NodeSelector type.
 // It converts from label=value space separated string to a map of label -> value

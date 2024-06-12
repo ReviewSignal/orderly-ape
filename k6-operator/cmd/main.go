@@ -24,7 +24,6 @@ import (
 	"github.com/ReviewSignal/loadtesting/k6-operator/internal/loadtesting/client"
 	"github.com/ReviewSignal/loadtesting/k6-operator/internal/options"
 
-	loadtestingv1alpha1 "github.com/ReviewSignal/loadtesting/k6-operator/api/v1alpha1"
 	"github.com/ReviewSignal/loadtesting/k6-operator/internal/controller"
 	//+kubebuilder:scaffold:imports
 )
@@ -37,7 +36,6 @@ var (
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 
-	utilruntime.Must(loadtestingv1alpha1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 }
 

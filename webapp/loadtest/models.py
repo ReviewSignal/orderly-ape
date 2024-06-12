@@ -74,10 +74,10 @@ class TestRun(BaseNamedModel):
     )
 
     resources_cpu = models.CharField(
-        default="1", max_length=16, verbose_name=_("Per-worker CPU resources")
+        default="1", max_length=16, verbose_name=_("Per-worker CPU")
     )
     resources_memory = models.CharField(
-        default="2G", max_length=16, verbose_name=_("Per-worker memory resources")
+        default="2G", max_length=16, verbose_name=_("Per-worker memory")
     )
     dedicated_nodes = models.BooleanField(
         default=True, verbose_name=_("Run each worker on a separate node")
@@ -87,7 +87,17 @@ class TestRun(BaseNamedModel):
         max_length=200,
         verbose_name=_("Node selector"),
         help_text=_(
-            "Kubernetes node selector to use for worker pods (eg. 'cloud.google.com/gke-nodepool=default-pool')"
+            "Kubernetes node selector to use for worker pods "
+            "(eg. 'cloud.google.com/gke-spot=true')"
+        ),
+    )
+    job_deadline = models.CharField(
+        default="1h",
+        max_length=16,
+        verbose_name=_("Job deadline"),
+        help_text=_(
+            "Time to allow workers to run. This should take into test fetching docker "
+            "images, synctonization time, and actual test run time."
         ),
     )
 
