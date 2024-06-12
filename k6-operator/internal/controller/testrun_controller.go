@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/alessio/shellescape"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -164,6 +165,39 @@ func (r *TestRunReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		}
 	}
 
+	if job.Status == loadtestingapi.STATUS_RUNNING {
+		completed := true
+		success := true
+
+		for idx := range obj.Spec.AssignedSegments {
+			pod := &corev1.Pod{}
+			err = r.Get(ctx, types.NamespacedName{Name: fmt.Sprintf("%s-%d", obj.Name, idx), Namespace: obj.Namespace}, pod)
+			if err != nil {
+				return ctrl.Result{}, err
+			}
+
+			completed = completed && isPodCompleted(pod)
+			if completed {
+				success = success && isPodSucceeded(pod)
+			}
+		}
+
+		if completed {
+			if success {
+				job.Status = loadtestingapi.STATUS_COMPLETED
+				job.StatusDescription = "Worker pods have successfully completed running k6 tests"
+			} else {
+				job.StatusDescription = "Worker pods have failed running k6 tests"
+				job.Status = loadtestingapi.STATUS_FAILED
+			}
+
+			err = r.APIClient.Update(ctx, job)
+			if err != nil {
+				return ctrl.Result{}, err
+			}
+		}
+	}
+
 	return ctrl.Result{}, nil
 }
 
@@ -190,10 +224,11 @@ func (r *TestRunReconciler) syncPod(ctx context.Context, owner *loadtestingv1alp
 		obj.Spec.RestartPolicy = corev1.RestartPolicyNever
 		obj.Spec.TerminationGracePeriodSeconds = &zero
 
-		command := []string{"k6", "run", "--paused", "--linger", "--address", "0.0.0.0:6565",
-			"--tag", fmt.Sprintf("job_name=%s", owner.Name),
-			"--tag", fmt.Sprintf("instance_id=%s", obj.Name),
+		command := []string{"k6", "run", "--paused", "--address", "0.0.0.0:6565",
+			"--tag", fmt.Sprintf("testid=%s", owner.Name),
 			"--tag", fmt.Sprintf("location=%s", r.Location),
+			"--tag", fmt.Sprintf("instance_id=%s-%d", r.Location, idx),
+			"--tag", fmt.Sprintf("pod_name=%s", obj.Name),
 		}
 
 		if len(owner.Spec.Segments) > 1 {
@@ -202,6 +237,8 @@ func (r *TestRunReconciler) syncPod(ctx context.Context, owner *loadtestingv1alp
 		}
 
 		command = append(command, owner.Spec.SourceScript)
+
+		script := shellescape.QuoteCommand(command)
 
 		volumes := obj.Spec.Volumes
 		if corev1util.GetVolumeByName(volumes, "k6-script") == nil {
@@ -253,11 +290,21 @@ func (r *TestRunReconciler) syncPod(ctx context.Context, owner *loadtestingv1alp
 		if corev1util.GetContainerByName(containers, "k6") == nil {
 			obj.Spec.Containers = corev1util.UpsertContainer(obj.Spec.Containers,
 				corev1.Container{
-					Name:            "k6",
-					Image:           "loadimpact/k6",
+					Name: "k6",
+					// Image:           "loadimpact/k6",
+					Image: "europe-west4-docker.pkg.dev/calins-playground/k6-testing/k6-influxdb:latest",
+
 					ImagePullPolicy: corev1.PullIfNotPresent,
 					WorkingDir:      "/scripts",
-					Command:         command,
+					Command: []string{"/bin/sh", "-c",
+						strings.Join([]string{
+							script,
+							"EXIT_CODE=$?",
+							// 99 is the k6 exit code for ThresholdsHaveFailed.
+							// This is not an error from the operator's perspective.
+							"if [ $EXIT_CODE -ne 0 ] && [ $EXIT_CODE -ne 99 ]; then exit $EXIT_CODE; fi",
+						}, "\n"),
+					},
 					Env: []corev1.EnvVar{
 						{
 							Name:  "TARGET",
@@ -282,6 +329,18 @@ func (r *TestRunReconciler) syncPod(ctx context.Context, owner *loadtestingv1alp
 	})
 
 	return err
+}
+
+func isPodCompleted(pod *corev1.Pod) bool {
+	return pod.Status.Phase == corev1.PodSucceeded || pod.Status.Phase == corev1.PodFailed
+}
+
+func isPodSucceeded(pod *corev1.Pod) bool {
+	return pod.Status.Phase == corev1.PodSucceeded
+}
+
+func isPodFailed(pod *corev1.Pod) bool {
+	return pod.Status.Phase == corev1.PodFailed
 }
 
 func isPodStableReady(pod *corev1.Pod) bool {
