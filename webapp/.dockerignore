@@ -1,0 +1,23 @@
+.git/
+.DS_Store
+
+# Local development
+.venv
+.env
+webroot
+db.sqlite3
+db.sqlite3-journal
+
+# Python virtualenv and caches
+build
+dist
+.venv
+*.egg-info
+*.egg/
+*.pyc
+*.swp
+__pycache__
+
+# node and javascript sources
+static/build
+node_modules

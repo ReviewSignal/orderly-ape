@@ -12,6 +12,13 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 
 from pathlib import Path
 
+import environ
+
+env = environ.FileAwareEnv(
+    # set casting, default value
+    DEBUG=(bool, False)
+)
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -20,15 +27,17 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-pop^(ij1ml%a-b1h$-9f)7b0+7c#6_stu-6j-5slru8il57zs9"
+SECRET_KEY = env(
+    "SECRET_KEY",
+    default="django-insecure-pop^(ij1ml%a-b1h$-9f)7b0+7c#6_stu-6j-5slru8il57zs9",
+)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = env("DEBUG")
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["*"] if DEBUG else [])
 
-if DEBUG:
-    INTERNAL_IPS = ["127.0.0.1"]
+INTERNAL_IPS = env.list("INTERNAL_IPS", default=["127.0.0.1"] if DEBUG else [])
 
 # Application definition
 
@@ -51,6 +60,7 @@ if DEBUG:
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -85,12 +95,10 @@ WSGI_APPLICATION = "webapp.wsgi.application"
 
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
-
 DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
-    }
+    "default": env.db(
+        "DATABASE_URL", default="sqlite:///%s" % (BASE_DIR / "db.sqlite3")
+    )
 }
 
 CACHES = {
@@ -134,11 +142,44 @@ USE_I18N = True
 
 USE_TZ = True
 
+WEBROOT = Path(env.str("WEBROOT", BASE_DIR / "webroot"))
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.0/howto/static-files/
 
-STATIC_URL = "static/"
+STATIC_ROOT = env.str("STATIC_ROOT", WEBROOT / "static")
+STATIC_URL = env.str("STATIC_URL", "/static/")
+STATICFILES_DIRS = [BASE_DIR / "static"]
+STATICFILES_FINDERS = [
+    "django.contrib.staticfiles.finders.FileSystemFinder",
+    "django.contrib.staticfiles.finders.AppDirectoriesFinder",
+]
+
+# Media files
+MEDIA_ROOT = env.str("MEDIA_ROOT", WEBROOT / "uploads")
+MEDIA_URL = env.str("MEDIA_URL", "/uploads/")
+
+# Logging
+# https://docs.djangoproject.com/en/5.0/topics/logging/
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {
+        "console": {"class": "logging.StreamHandler"},
+    },
+    "loggers": {
+        "": {
+            "handlers": ["console"],
+            "level": "DEBUG",
+        },
+    },
+}
+
+USE_X_FORWARDED_HOST = True
+USE_X_FORWARDED_PORT = True
+CSRF_TRUSTED_ORIGINS = env.list(
+    "CSRF_TRUSTED_ORIGINS", default=["https://*.ngrok-free.app"] if DEBUG else []
+)
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field

@@ -9,3 +9,25 @@ venv = ".venv"
 
 [tool.django-stubs]
 django_settings_module = "webapp.settings"
+
+[project]
+name = "orderly-ape"
+dependencies = [
+  'django ~= 5.0',
+  'django-environ',
+  'django-autocomplete-light ~= 3.11',
+  'django-fsm-2 ~= 3.0',
+  'djangorestframework ~= 3.15 ',
+  'whitenoise',
+]
+
+[project.optional-dependencies]
+docker = [
+  'gunicorn',
+  'mysqlclient',
+]
+dev = [
+    "django-debug-toolbar",
+    "django-types",
+    "djangorestframework-types",
+]
