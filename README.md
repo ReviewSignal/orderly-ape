@@ -1,4 +1,4 @@
-# Load Testing Tool
+# Orderly Ape
 
 Orchestrate and run k6 load tests across multiple Kubernetes clusters. It consists of two main components:
 
