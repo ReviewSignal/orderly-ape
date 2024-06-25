@@ -18,15 +18,22 @@ Including another URLconf
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
+from django.http import HttpResponse
 from django.urls import include, path
 from rest_framework import routers
 
 from loadtest.views import WorkersJobsViewSet
 
+
+def ok(_):
+    return HttpResponse("OK", content_type="text/plain")
+
+
 router = routers.DefaultRouter(trailing_slash=False)
 router.register("workers/(?P<location>[a-z0-9-]+)/jobs", WorkersJobsViewSet)
 
 urlpatterns = [
+    path("", ok, name="ok"),
     path("admin/", admin.site.urls),
     path("api-auth/", include("rest_framework.urls")),
     path("api/", include(router.urls)),

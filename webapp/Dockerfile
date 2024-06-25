@@ -8,13 +8,15 @@ ENV PORT=8080
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    gcc gettext default-libmysqlclient-dev pkg-config \
-    && rm -rf /var/lib/apt/lists/*
-
 WORKDIR /usr/src/app
 COPY requirements.docker.txt ./requirements.txt
-RUN pip install --no-cache-dir -r requirements.txt
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends gcc default-libmysqlclient-dev pkg-config \
+    && pip install --no-cache-dir -r requirements.txt \
+    && apt-get remove -y gcc default-libmysqlclient-dev pkg-config \
+    && apt-get install -y --no-install-recommends libmariadb3 \
+    && rm -rf /var/lib/apt/lists/*
 
 COPY . .
 

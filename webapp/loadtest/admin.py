@@ -1,12 +1,11 @@
-from types import SimpleNamespace
-
 from dal import autocomplete
 from django import forms
+from django.conf import settings
 from django.contrib import admin
 from django.forms import ModelForm
 from django.forms.models import BaseInlineFormSet
 from django.forms.utils import flatatt
-from django.urls import path, include
+from django.urls import path
 from django.utils.functional import cached_property
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
@@ -96,6 +95,9 @@ class TestRunAdmin(admin.ModelAdmin):
     readonly_fields = ("name",)
     form = TestRunAdminForm
     inlines = [TestRunLocationInline]
+
+    def has_change_permission(self, request, obj=None):
+        return getattr(settings, "DEBUG", False)
 
     def get_urls(self):
         autocomplete_urls = [
