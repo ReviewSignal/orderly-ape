@@ -42,7 +42,7 @@ INTERNAL_IPS = env.list("INTERNAL_IPS", default=["127.0.0.1"] if DEBUG else [])
 # Application definition
 
 INSTALLED_APPS = [
-    "django.contrib.admin",
+    "webapp.apps.LoadtestingAdminConfig",  # replaces 'django.contrib.admin'
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",

@@ -4,6 +4,7 @@ from django.db import models
 from django.db.models import Sum
 from django.db.models.functions import Now
 from django.utils.crypto import get_random_string
+from django.utils.functional import cached_property
 from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
 from django_fsm import FSMField, transition
@@ -55,18 +56,33 @@ class TestLocation(BaseNamedModel):
 class TestRun(BaseNamedModel):
     locations: 'Manager["TestRunLocation"]'
 
-    target = models.URLField()
+    target = models.URLField(
+        help_text=_(
+            "URL to test. It is passed to the test script as "
+            "<code>TARGET</code> environment variable."
+        )
+    )
 
     source_repo = models.CharField(
         default=DEFAULT_REPO,
         max_length=200,
         verbose_name=_("Git repository"),
+        help_text=_("Git source repository to fetch the test script from."),
     )
     source_ref = models.CharField(
-        default="main", max_length=200, verbose_name=_("Git Reference")
+        default="main",
+        max_length=200,
+        verbose_name=_("Git Reference"),
+        help_text=_(
+            "Git reference to use when fetching the test script. "
+            "It can be either a branch, a tag, or a commit hash."
+        ),
     )
     source_script = models.CharField(
-        default="loadtest.js", max_length=200, verbose_name=_("Test script file")
+        default="loadtest.js",
+        max_length=200,
+        verbose_name=_("Test script file"),
+        help_text=_("Test script file, relative to the repository root."),
     )
 
     start_test_at = models.DateTimeField(
@@ -74,13 +90,24 @@ class TestRun(BaseNamedModel):
     )
 
     resources_cpu = models.CharField(
-        default="1", max_length=16, verbose_name=_("Per-worker CPU")
+        default="1",
+        max_length=16,
+        verbose_name=_("Per-worker CPU"),
+        help_text=_("Number of CPU cores to allocate for each worker."),
     )
     resources_memory = models.CharField(
-        default="2G", max_length=16, verbose_name=_("Per-worker memory")
+        default="2G",
+        max_length=16,
+        verbose_name=_("Per-worker memory"),
+        help_text=_("Memory to allocate for each worker."),
     )
     dedicated_nodes = models.BooleanField(
-        default=True, verbose_name=_("Run each worker on a separate node")
+        default=True,
+        verbose_name=_("Run each worker on a separate node"),
+        help_text=_(
+            "If enabled, each worker will run on a separate node (eg. separate VM). "
+            "It's recommended to enable this option for more consistent results."
+        ),
     )
     node_selector = models.CharField(
         blank=True,
@@ -100,6 +127,15 @@ class TestRun(BaseNamedModel):
             "images, synctonization time, and actual test run time."
         ),
     )
+
+    draft = models.BooleanField(default=True, verbose_name=_("Draft"))
+
+    @cached_property
+    def statuses(self):
+        qs = self.locations.values("status").annotate(count=models.Count("status"))
+        statuses = {item.get("status"): int(item.get("count", 0)) for item in qs}
+        statuses["total"] = sum(statuses.values())
+        return statuses
 
     @property
     def completed(self) -> bool:

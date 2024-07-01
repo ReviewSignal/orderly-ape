@@ -13,7 +13,11 @@ class WorkersJobsViewSet(
     viewsets.GenericViewSet,
 ):
     serializer_class = JobSerializer
-    queryset = TestRunLocation.objects.select_related("test_run").all()
+    queryset = (
+        TestRunLocation.objects.select_related("test_run")
+        .filter(test_run__draft=False)
+        .all()
+    )
     lookup_field = "test_run__name"
 
     def get_location(self):
