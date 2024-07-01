@@ -10,6 +10,8 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	"github.com/ReviewSignal/loadtesting/k6-operator/internal/options"
+
 	"github.com/ReviewSignal/loadtesting/k6-operator/internal/loadtesting/runtime"
 )
 
@@ -78,7 +80,7 @@ func (o *Job) GetName() string {
 }
 
 func (o *Job) GetNamespace() string {
-	return "default"
+	return options.JobNamespace
 }
 
 func (o *Job) ToK8SResource() client.Object {

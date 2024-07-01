@@ -1,0 +1,3 @@
+k6-operator for Orderly Ape installed
+    region: {{ .Values.config.region }}
+    api endpoint: {{ .Values.config.api.endpoint }}

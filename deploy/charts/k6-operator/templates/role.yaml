@@ -1,8 +1,9 @@
----
 apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
+kind: Role
 metadata:
-  name: manager-role
+  name: {{ include "k6-operator.fullname" . }}
+  labels:
+    {{- include "k6-operator.labels" . | nindent 4 }}
 rules:
 - apiGroups:
   - batch
@@ -48,3 +49,4 @@ rules:
   - patch
   - post
   - put
+

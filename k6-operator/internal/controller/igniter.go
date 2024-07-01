@@ -30,6 +30,8 @@ type Igniter struct {
 	groupCtx context.Context
 }
 
+//+kubebuilder:rbac:groups=core,resources=pods/proxy,verbs=get;post;put;patch;delete
+
 func (i *Igniter) Start(ctx context.Context, r *TestRunReconciler) error {
 	select {
 	case <-ctx.Done():

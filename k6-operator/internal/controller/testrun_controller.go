@@ -48,9 +48,9 @@ type TestRunReconciler struct {
 	igniters  Igniters
 }
 
-//+kubebuilder:rbac:groups=batch,resources=Job,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=batch,resources=Job/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=batch,resources=Job/finalizers,verbs=update
+//+kubebuilder:rbac:groups=batch,resources=jobs,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=batch,resources=jobs/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=batch,resources=jobs/finalizers,verbs=update
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -357,6 +357,8 @@ func (r *TestRunReconciler) syncJob(ctx context.Context, job *loadtestingapi.Job
 
 	return obj, err
 }
+
+//+kubebuilder:rbac:groups=core,resources=pods,verbs=get;list;watch
 
 func (r *TestRunReconciler) getPods(ctx context.Context, job *loadtestingapi.Job) ([]corev1.Pod, error) {
 	pods := &corev1.PodList{}

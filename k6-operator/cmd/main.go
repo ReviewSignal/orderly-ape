@@ -7,6 +7,7 @@ import (
 	"crypto/tls"
 	"flag"
 	"os"
+	"path"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
@@ -15,7 +16,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	kmeta "kmodules.xyz/client-go/meta"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
@@ -39,6 +42,18 @@ func init() {
 	//+kubebuilder:scaffold:scheme
 }
 
+// reads a value from the file /run/secrets/<name>
+func fromSecretFile(name string) string {
+	file := path.Join("/run/secrets", name)
+	data, err := os.ReadFile(file)
+	if err != nil && !os.IsNotExist(err) {
+		setupLog.Error(err, "unable to read secret file", "file", file)
+		return ""
+	}
+
+	return string(data)
+}
+
 func main() {
 	var metricsAddr string
 	var enableLeaderElection bool
@@ -50,12 +65,13 @@ func main() {
 	var loadtestingAPIEndpoint string
 	var loadtestingAPIUser string
 	var loadtestingAPIPassword string
+	var jobNamespace string
 
-	flag.StringVar(&loadtestingAPIEndpoint, "loadtesting-api-endpoint", options.APIEndpoint, "The API endpoint for controlling the k6 load testing.")
-	flag.StringVar(&loadtestingAPIUser, "loadtesting-api-user", options.APIUser, "The API user for controlling the k6 load testing.")
+	flag.StringVar(&loadtestingAPIEndpoint, "loadtesting-api-endpoint", "", "The API endpoint for controlling the k6 load testing.")
+	flag.StringVar(&loadtestingAPIUser, "loadtesting-api-user", "", "The API user for controlling the k6 load testing.")
 	flag.StringVar(&loadtestingAPIPassword, "loadtesting-api-password", "", "The API password for controlling the k6 load testing.")
 	flag.StringVar(&loadtestingRegion, "loadtesting-region", "", "The region this controller is running in. Required.")
-
+	flag.StringVar(&jobNamespace, "job-namespace", "", "The namespace to create the k6 jobs in. Defaults to the namespace the controller is running in.")
 	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
 	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
 	flag.BoolVar(&enableLeaderElection, "leader-elect", false,
@@ -94,16 +110,38 @@ func main() {
 	})
 
 	if loadtestingRegion == "" {
+		loadtestingRegion = fromSecretFile("REGION")
+	}
+	if loadtestingRegion == "" {
 		setupLog.Error(nil, "loadtesting-region is required")
 		os.Exit(1)
 	}
 	options.Region = loadtestingRegion
 
+	if jobNamespace == "" {
+		jobNamespace = fromSecretFile("JOBS_NAMESPACE")
+	}
+	if jobNamespace == "" {
+		jobNamespace = kmeta.PodNamespace()
+	}
+	options.JobNamespace = jobNamespace
+
+	if loadtestingAPIEndpoint == "" {
+		loadtestingAPIEndpoint = fromSecretFile("API_ENDPOINT")
+	}
 	if loadtestingAPIEndpoint != "" {
 		options.APIEndpoint = loadtestingAPIEndpoint
 	}
+
+	if loadtestingAPIUser == "" {
+		loadtestingAPIUser = fromSecretFile("API_USER")
+	}
 	if loadtestingAPIUser != "" {
 		options.APIUser = loadtestingAPIUser
+	}
+
+	if loadtestingAPIPassword == "" {
+		loadtestingAPIPassword = fromSecretFile("API_PASSWORD")
 	}
 	if loadtestingAPIPassword != "" {
 		options.APIPassword = loadtestingAPIPassword
@@ -111,6 +149,11 @@ func main() {
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme: scheme,
+		Cache: cache.Options{
+			DefaultNamespaces: map[string]cache.Config{
+				jobNamespace: {},
+			},
+		},
 		Metrics: metricsserver.Options{
 			BindAddress:   metricsAddr,
 			SecureServing: secureMetrics,
