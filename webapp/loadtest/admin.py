@@ -1,6 +1,5 @@
 from dal import autocomplete
 from django import forms
-from django.conf import settings
 from django.contrib import admin
 from django.forms import ModelForm
 from django.forms.models import BaseInlineFormSet
@@ -34,20 +33,52 @@ class ReadOnlyWidget(forms.Widget):
         return format_html("<input {}>{}", mark_safe(flatatt(final_attrs)), self.value)
 
 
-class TestRunLocationFormsSet(BaseInlineFormSet):
+class TestRunLocationForm(ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        locations = iter(TestLocation.objects.values_list("name", flat=True))
+        self.fields["location"].widget.can_add_related = False
+        self.fields["location"].widget.can_change_related = False
+        self.fields["location"].widget.can_delete_related = False
+        self.fields["location"].widget.can_view_related = False
+        if self.instance.pk:
+            self.fields["location"].widget = ReadOnlyWidget(
+                value=self.instance.location
+            )
+
+    class Meta:  # pyright: ignore reportIncompatibleVariableOverride
+        model = TestRunLocation
+        fields = "__all__"
+
+
+class TestRunLocationFormSet(BaseInlineFormSet):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        locations = set(TestLocation.objects.values_list("name", flat=True))
+        selected_locations = (
+            {
+                name
+                for name in self.instance.locations.values_list("location", flat=True)
+            }
+            if self.instance and self.instance.pk
+            else set()
+        )
+        available_locations = locations - selected_locations
+
         for form in self.forms:
-            location = next(locations, None)
-            if location is not None:
-                form.fields["location"].widget = ReadOnlyWidget(value=location)
+            if not form.instance.pk:
+                location = available_locations.pop() if available_locations else None
+                form.fields["location"].initial = location
 
 
 class TestRunLocationInline(admin.TabularInline):
     model = TestRunLocation
-    formset = TestRunLocationFormsSet
-    readonly_fields = ("online_workers", "status", "status_description")
+    form = TestRunLocationForm
+    formset = TestRunLocationFormSet
+    readonly_fields = (
+        "online_workers",
+        "status",
+        "status_description",
+    )
 
     @cached_property
     def available_locations(self):
@@ -56,7 +87,7 @@ class TestRunLocationInline(admin.TabularInline):
     def get_extra(self, request, obj=None, **kwargs):
         if obj is None:
             return len(self.available_locations)
-        return len(self.available_locations) - obj.locations.count()
+        return 0
 
     def get_max_num(self, request, obj=None, **kwargs):
         return len(self.available_locations)
@@ -96,6 +127,8 @@ class TestRunAdminForm(ModelForm):
     source_repo = autocomplete.Select2ListCreateChoiceField(
         widget=autocomplete.ListSelect2(url="admin:autocomplete_loadtest_source_repo"),
     )
+
+    name = forms.CharField(required=False)
 
     class Meta:  # pyright: ignore reportIncompatibleVariableOverride
         model = TestRun
@@ -172,7 +205,7 @@ class TestRunAdmin(admin.ModelAdmin):
             return "unknown"
 
     def changeform_view(self, request, object_id=None, form_url="", extra_context=None):
-        obj: TestRun = self.get_object(request, object_id)
+        obj: TestRun | None = self.get_object(request, object_id or "")
         extra_context = extra_context or {}
         extra_actions = {}
 
