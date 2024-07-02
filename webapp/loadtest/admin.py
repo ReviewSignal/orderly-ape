@@ -207,9 +207,6 @@ class TestRunAdmin(admin.ModelAdmin):
 
         return super().response_change(request, obj)
 
-    def has_change_permission(self, request, obj=None):
-        return getattr(settings, "DEBUG", False)
-
     def get_urls(self):
         autocomplete_urls = [
             path(
