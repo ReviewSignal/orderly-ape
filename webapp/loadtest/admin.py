@@ -2,17 +2,24 @@ from dal import autocomplete
 from django import forms
 from django.conf import settings
 from django.contrib import admin
-from django.db import models
 from django.forms import ModelForm
 from django.forms.models import BaseInlineFormSet
 from django.forms.utils import flatatt
-from django.urls import path
+from django.http import HttpResponseRedirect
+from django.urls import path, reverse
 from django.utils.functional import cached_property
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
+from django.utils.translation import gettext_lazy as _
 
 # Register your models here.
-from .models import DEFAULT_REPO, TestLocation, TestRun, TestRunLocation
+from .models import (
+    DEFAULT_REPO,
+    TestLocation,
+    TestRun,
+    TestRunLocation,
+    duplicate_test_run,
+)
 
 
 class ReadOnlyWidget(forms.Widget):
@@ -40,7 +47,6 @@ class TestRunLocationFormsSet(BaseInlineFormSet):
 class TestRunLocationInline(admin.TabularInline):
     model = TestRunLocation
     formset = TestRunLocationFormsSet
-    can_delete = False
     readonly_fields = ("online_workers", "status", "status_description")
 
     @cached_property
@@ -50,13 +56,18 @@ class TestRunLocationInline(admin.TabularInline):
     def get_extra(self, request, obj=None, **kwargs):
         if obj is None:
             return len(self.available_locations)
-        return 0
+        return len(self.available_locations) - obj.locations.count()
 
     def get_max_num(self, request, obj=None, **kwargs):
-        return self.get_extra(request, obj, **kwargs)
+        return len(self.available_locations)
+
+    def has_delete_permission(self, request, obj=None):
+        can_delete = obj is not None and obj.draft
+        return can_delete
 
     def has_change_permission(self, request, obj=None):
-        return False
+        can_change = obj is None or obj.draft
+        return can_change
 
 
 def get_repo_choices():
@@ -104,12 +115,25 @@ class TestRunAdmin(admin.ModelAdmin):
     ]
     date_hierarchy = "created_at"
     search_fields = ["target", "name", "source_repo", "source_script"]
-    readonly_fields = (
-        "name",
-        "draft",
-    )
+    readonly_fields = ("draft",)
     form = TestRunAdminForm
     inlines = [TestRunLocationInline]
+
+    def get_readonly_fields(self, request, obj=None):
+        readonly_fields = list(super().get_readonly_fields(request, obj))
+        if obj and not obj.draft:
+            readonly_fields = [
+                "name",
+                "source_script",
+                "source_ref",
+                "target",
+                "resources_cpu",
+                "resources_memory",
+                "dedicated_nodes",
+                "node_selector",
+                "job_deadline",
+            ] + readonly_fields
+        return readonly_fields
 
     @admin.display()
     def script(self, obj: TestRun):
@@ -148,12 +172,40 @@ class TestRunAdmin(admin.ModelAdmin):
             return "unknown"
 
     def changeform_view(self, request, object_id=None, form_url="", extra_context=None):
+        obj: TestRun = self.get_object(request, object_id)
         extra_context = extra_context or {}
+        extra_actions = {}
 
-        # extra_context["show_save"] = False
-        extra_context["show_save_and_continue"] = False
+        if obj:
+            extra_context["show_save_and_add_another"] = False
 
+            extra_actions["duplicate"] = _("+ Duplicate")
+
+            if obj.draft:
+                extra_actions["runtest"] = _("▶ Run test")
+
+        extra_context["extra_actions"] = extra_actions  # pyright: ignore [reportArgumentType]
         return super().changeform_view(request, object_id, form_url, extra_context)
+
+    def response_change(self, request, obj: TestRun):
+        if "_runtest" in request.POST:
+            obj.draft = False
+            obj.save()
+            self.message_user(request, "Test run started.")
+            redirect_url = reverse(
+                "admin:%s_%s_changelist" % (obj._meta.app_label, obj._meta.model_name)
+            )
+            return HttpResponseRedirect(redirect_url)
+
+        if "_duplicate" in request.POST:
+            dup = duplicate_test_run(obj)
+            redirect_url = reverse(
+                "admin:%s_%s_change" % (dup._meta.app_label, dup._meta.model_name),
+                args=[dup.pk],
+            )
+            return HttpResponseRedirect(redirect_url)
+
+        return super().response_change(request, obj)
 
     def has_change_permission(self, request, obj=None):
         return getattr(settings, "DEBUG", False)

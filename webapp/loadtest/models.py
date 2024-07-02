@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING
 
-from django.db import models
+from django.db import models, transaction
 from django.db.models import Sum
 from django.db.models.functions import Now
 from django.utils.crypto import get_random_string
@@ -280,3 +280,22 @@ class TestRunLocation(BaseBareModel):
         verbose_name = _("Test Run Location")
         verbose_name_plural = _("Test Run Locations")
         db_table = "loadtest_test_run_location"
+
+
+@transaction.atomic
+def duplicate_test_run(obj: TestRun):
+    locations = list(obj.locations.all())
+    obj.pk = None
+    obj.name = None
+    obj.draft = True
+    obj.start_test_at = None
+    obj.save()
+
+    for location in locations:
+        location.pk = None
+        location.test_run = obj
+        location.status = TestRunLocation.Status.PENDING
+        location.status_description = ""
+        location.save()
+
+    return obj
