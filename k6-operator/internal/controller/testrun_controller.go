@@ -246,24 +246,21 @@ func (r *TestRunReconciler) syncJob(ctx context.Context, job *loadtestingapi.Job
 		tags["testid"] = job.GetName()
 		tags["location"] = r.Location
 
-		var segmentsEnv []corev1.EnvVar
-		if len(job.AssignedSegments) > 1 {
-			command = append(command, "--execution-segment-sequence", strings.Join(job.TestRun.Segments, ","))
-			command = append(command, "--execution-segment", "__ASSIGNED_SEGMENT__")
-			tags["segment_number"] = "__ASSIGNED_SEGMENT_ID__"
-			segmentsEnv = make([]corev1.EnvVar, 0)
-			for i, segment := range job.AssignedSegments {
-				segmentsEnv = append(segmentsEnv,
-					corev1.EnvVar{
-						Name:  fmt.Sprintf("SEGMENT_%d", i),
-						Value: segment.Segment,
-					},
-					corev1.EnvVar{
-						Name:  fmt.Sprintf("SEGMENT_ID_%d", i),
-						Value: segment.ID,
-					},
-				)
-			}
+		segmentsEnv := make([]corev1.EnvVar, 0)
+		command = append(command, "--execution-segment-sequence", strings.Join(job.TestRun.Segments, ","))
+		command = append(command, "--execution-segment", "__ASSIGNED_SEGMENT__")
+		tags["segment_number"] = "__ASSIGNED_SEGMENT_ID__"
+		for i, segment := range job.AssignedSegments {
+			segmentsEnv = append(segmentsEnv,
+				corev1.EnvVar{
+					Name:  fmt.Sprintf("SEGMENT_%d", i),
+					Value: segment.Segment,
+				},
+				corev1.EnvVar{
+					Name:  fmt.Sprintf("SEGMENT_ID_%d", i),
+					Value: segment.ID,
+				},
+			)
 		}
 
 		for key, value := range tags {
