@@ -8,6 +8,18 @@ class TestRunSerializer(serializers.ModelSerializer):
     completed = serializers.BooleanField(read_only=True)
     ready = serializers.BooleanField(read_only=True)
     segments = serializers.ListField(read_only=True)
+    env_vars = serializers.SerializerMethodField(method_name="get_env_vars")
+    labels = serializers.SerializerMethodField(method_name="get_labels")
+
+    def get_env_vars(self, obj):
+        return {
+            name: value for (name, value) in obj.env_vars.values_list("name", "value")
+        }
+
+    def get_labels(self, obj):
+        return {
+            name: value for (name, value) in obj.labels.values_list("name", "value")
+        }
 
     class Meta:  # pyright: ignore [reportIncompatibleVariableOverride]
         model = TestRun

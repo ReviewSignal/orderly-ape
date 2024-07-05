@@ -28,6 +28,8 @@ type TestRun struct {
 	CreatedAt      string            `json:"created_at"`
 	UpdatedAt      string            `json:"updated_at"`
 	Target         string            `json:"target"`
+	EnvVars        map[string]string `json:"env_vars"`
+	Labels         map[string]string `json:"labels"`
 	SourceRepo     string            `json:"source_repo"`
 	SourceRef      string            `json:"source_ref"`
 	SourceScript   string            `json:"source_script"`
@@ -42,18 +44,23 @@ type TestRun struct {
 	DedicatedNodes bool              `json:"dedicated_nodes"`
 }
 
+type Segment struct {
+	ID      string `json:"segment_id"`
+	Segment string `json:"segment"`
+}
+
 // Job is a struct that represents a job to be executed by the worker.
 // It is exposed by the web application trough the workers API.
 type Job struct {
-	Name              string   `json:"name"`
-	URL               string   `json:"url"`
-	Location          string   `json:"location"`
-	Status            string   `json:"status"`
-	StatusDescription string   `json:"status_description"`
-	Workers           int32    `json:"num_workers"`
-	OnlineWorkers     int32    `json:"online_workers"`
-	AssignedSegments  []string `json:"assigned_segments"`
-	TestRun           TestRun  `json:"test_run"`
+	Name              string    `json:"name"`
+	URL               string    `json:"url"`
+	Location          string    `json:"location"`
+	Status            string    `json:"status"`
+	StatusDescription string    `json:"status_description"`
+	Workers           int32     `json:"num_workers"`
+	OnlineWorkers     int32     `json:"online_workers"`
+	AssignedSegments  []Segment `json:"assigned_segments"`
+	TestRun           TestRun   `json:"test_run"`
 }
 
 type JobList struct {

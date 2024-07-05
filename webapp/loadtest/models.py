@@ -55,6 +55,8 @@ class TestLocation(BaseNamedModel):
 
 class TestRun(BaseNamedModel):
     locations: 'Manager["TestRunLocation"]'
+    env_vars: 'Manager["TestRunEnvVar"]'
+    labels: 'Manager["TestRunLabel"]'
 
     target = models.URLField(
         help_text=_(
@@ -171,6 +173,46 @@ class TestRun(BaseNamedModel):
         super().save(*args, **kwargs)
 
 
+class TestRunLabel(BaseBareModel):
+    name = models.SlugField(
+        verbose_name=_("Name"), help_text=_("Environment variable name")
+    )
+    value = models.SlugField(
+        max_length=200,
+        verbose_name=_("Value"),
+        help_text=_("Environment variable value"),
+    )
+    test_run = models.ForeignKey(
+        TestRun,
+        to_field="name",
+        on_delete=models.CASCADE,
+        related_name="labels",
+        db_column="test_run",
+    )
+
+    def __str__(self):
+        return f"{self.name}={self.value}"
+
+
+class TestRunEnvVar(BaseBareModel):
+    name = models.SlugField(
+        verbose_name=_("Name"), help_text=_("Environment variable name")
+    )
+    value = models.TextField(
+        verbose_name=_("Value"), help_text=_("Environment variable value")
+    )
+    test_run = models.ForeignKey(
+        TestRun,
+        to_field="name",
+        on_delete=models.CASCADE,
+        related_name="env_vars",
+        db_column="test_run",
+    )
+
+    def __str__(self):
+        return f"{self.name}"
+
+
 class TestRunLocation(BaseBareModel):
     class Status(models.TextChoices):
         PENDING = "pending", _("Pending")
@@ -202,7 +244,7 @@ class TestRunLocation(BaseBareModel):
     status_description = models.TextField(blank=True)
 
     @property
-    def assigned_segments(self) -> list[str]:
+    def assigned_segments(self):
         start = TestRunLocation.objects.filter(
             test_run=self.test_run, pk__lt=self.pk
         ).aggregate(Sum("num_workers"))
@@ -222,7 +264,10 @@ class TestRunLocation(BaseBareModel):
                 return f"{index}/{total}"
 
         return [
-            f"{get_segment_part(idx-1, total)}:{get_segment_part(idx, total)}"
+            {
+                "segment": f"{get_segment_part(idx-1, total)}:{get_segment_part(idx, total)}",
+                "segment_id": f"{idx}",
+            }
             for idx in range(start + 1, start + self.num_workers + 1)
         ]
 
@@ -285,6 +330,9 @@ class TestRunLocation(BaseBareModel):
 @transaction.atomic
 def duplicate_test_run(obj: TestRun):
     locations = list(obj.locations.all())
+    env_vars = list(obj.env_vars.all())
+    labels = list(obj.labels.all())
+
     obj.pk = None
     obj.name = None
     obj.draft = True
@@ -297,5 +345,15 @@ def duplicate_test_run(obj: TestRun):
         location.status = TestRunLocation.Status.PENDING
         location.status_description = ""
         location.save()
+
+    for env_var in env_vars:
+        env_var.pk = None
+        env_var.test_run = obj
+        env_var.save()
+
+    for label in labels:
+        label.pk = None
+        label.test_run = obj
+        label.save()
 
     return obj

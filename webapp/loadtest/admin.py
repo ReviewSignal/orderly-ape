@@ -16,6 +16,8 @@ from .models import (
     DEFAULT_REPO,
     TestLocation,
     TestRun,
+    TestRunEnvVar,
+    TestRunLabel,
     TestRunLocation,
     duplicate_test_run,
 )
@@ -31,6 +33,44 @@ class ReadOnlyWidget(forms.Widget):
             attrs or {}, {"name": name, "value": self.value, "type": "hidden"}
         )
         return format_html("<input {}>{}", mark_safe(flatatt(final_attrs)), self.value)
+
+
+class TestRunEnvVarForm(forms.ModelForm):
+    class Meta:  # pyright: ignore reportIncompatibleVariableOverride
+        model = TestRunEnvVar
+        fields = "__all__"
+        widgets = {
+            "value": forms.Textarea(attrs={"rows": 2}),
+        }
+
+
+class TestRunEnvVarInline(admin.TabularInline):
+    extra = 1
+    form = TestRunEnvVarForm
+    model = TestRunEnvVar
+
+    def has_delete_permission(self, request, obj=None):
+        return obj is not None and obj.draft
+
+    def has_change_permission(self, request, obj=None):
+        return obj is None or obj.draft
+
+    def get_max_num(self, request, obj=None, **kwargs):
+        return 0 if obj and not obj.draft else self.max_num
+
+
+class TestRunLabelInline(admin.TabularInline):
+    extra = 1
+    model = TestRunLabel
+
+    def has_delete_permission(self, request, obj=None):
+        return obj is not None and obj.draft
+
+    def has_change_permission(self, request, obj=None):
+        return obj is None or obj.draft
+
+    def get_max_num(self, request, obj=None, **kwargs):
+        return 0 if obj and not obj.draft else self.max_num
 
 
 class TestRunLocationForm(ModelForm):
@@ -65,7 +105,7 @@ class TestRunLocationFormSet(BaseInlineFormSet):
         available_locations = locations - selected_locations
 
         for form in self.forms:
-            if not form.instance.pk:
+            if not form.data and not form.instance.pk:
                 location = available_locations.pop() if available_locations else None
                 form.fields["location"].initial = location
 
@@ -81,8 +121,8 @@ class TestRunLocationInline(admin.TabularInline):
     )
 
     @cached_property
-    def available_locations(self):
-        return TestLocation.objects.values_list("name", flat=True)
+    def available_locations(self) -> list[TestLocation]:
+        return list(TestLocation.objects.all())
 
     def get_extra(self, request, obj=None, **kwargs):
         if obj is None:
@@ -93,12 +133,10 @@ class TestRunLocationInline(admin.TabularInline):
         return len(self.available_locations)
 
     def has_delete_permission(self, request, obj=None):
-        can_delete = obj is not None and obj.draft
-        return can_delete
+        return obj is not None and obj.draft
 
     def has_change_permission(self, request, obj=None):
-        can_change = obj is None or obj.draft
-        return can_change
+        return obj is None or obj.draft
 
 
 def get_repo_choices():
@@ -150,7 +188,7 @@ class TestRunAdmin(admin.ModelAdmin):
     search_fields = ["target", "name", "source_repo", "source_script"]
     readonly_fields = ("draft",)
     form = TestRunAdminForm
-    inlines = [TestRunLocationInline]
+    inlines = [TestRunLocationInline, TestRunEnvVarInline, TestRunLabelInline]
 
     def get_readonly_fields(self, request, obj=None):
         readonly_fields = list(super().get_readonly_fields(request, obj))

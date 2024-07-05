@@ -237,26 +237,44 @@ func (r *TestRunReconciler) syncJob(ctx context.Context, job *loadtestingapi.Job
 			}
 		}
 
-		command := []string{"k6", "run", "--paused", "--address", "0.0.0.0:6565",
-			"--tag", fmt.Sprintf("testid=%s", job.GetName()),
-			"--tag", fmt.Sprintf("location=%s", r.Location),
+		command := []string{"k6", "run", "--paused", "--address", "0.0.0.0:6565"}
+		if output, found := job.TestRun.EnvVars["OUTPUT"]; found {
+			command = append(command, "-o", output)
 		}
+
+		tags := job.TestRun.Labels
+		tags["testid"] = job.GetName()
+		tags["location"] = r.Location
 
 		var segmentsEnv []corev1.EnvVar
 		if len(job.AssignedSegments) > 1 {
 			command = append(command, "--execution-segment-sequence", strings.Join(job.TestRun.Segments, ","))
 			command = append(command, "--execution-segment", "__ASSIGNED_SEGMENT__")
-			segmentsEnv = make([]corev1.EnvVar, len(job.AssignedSegments))
+			tags["segment_number"] = "__ASSIGNED_SEGMENT_ID__"
+			segmentsEnv = make([]corev1.EnvVar, 0)
 			for i, segment := range job.AssignedSegments {
-				segmentsEnv[i].Name = fmt.Sprintf("SEGMENT_%d", i)
-				segmentsEnv[i].Value = segment
+				segmentsEnv = append(segmentsEnv,
+					corev1.EnvVar{
+						Name:  fmt.Sprintf("SEGMENT_%d", i),
+						Value: segment.Segment,
+					},
+					corev1.EnvVar{
+						Name:  fmt.Sprintf("SEGMENT_ID_%d", i),
+						Value: segment.ID,
+					},
+				)
 			}
+		}
+
+		for key, value := range tags {
+			command = append(command, "--tag", fmt.Sprintf("%s=%s", key, value))
 		}
 
 		command = append(command, job.TestRun.SourceScript)
 
 		script := shellescape.QuoteCommand(command)
 		script = strings.Replace(script, "__ASSIGNED_SEGMENT__", `"${SEGMENT_$(JOB_COMPLETION_INDEX)}"`, -1)
+		script = strings.Replace(script, "__ASSIGNED_SEGMENT_ID__", `"${SEGMENT_ID_$(JOB_COMPLETION_INDEX)}"`, -1)
 
 		if corev1util.GetVolumeByName(pod.Spec.Volumes, "k6-script") == nil {
 			pod.Spec.Volumes = corev1util.UpsertVolume(pod.Spec.Volumes,
@@ -303,12 +321,18 @@ func (r *TestRunReconciler) syncJob(ctx context.Context, job *loadtestingapi.Job
 			},
 		}
 
-		env := []corev1.EnvVar{
-			{
-				Name:  "TARGET",
-				Value: job.TestRun.Target,
-			},
+		env := []corev1.EnvVar{}
+		for name, value := range job.TestRun.EnvVars {
+			env = append(env, corev1.EnvVar{
+				Name:  name,
+				Value: value,
+			})
 		}
+		env = append(env, corev1.EnvVar{
+			Name:  "TARGET",
+			Value: job.TestRun.Target,
+		})
+
 		if segmentsEnv != nil {
 			env = corev1util.UpsertEnvVars(env, segmentsEnv...)
 		}

@@ -13,11 +13,7 @@ class WorkersJobsViewSet(
     viewsets.GenericViewSet,
 ):
     serializer_class = JobSerializer
-    queryset = (
-        TestRunLocation.objects.select_related("test_run")
-        .filter(test_run__draft=False)
-        .all()
-    )
+    queryset = TestRunLocation.objects.select_related("test_run").all()
     lookup_field = "test_run__name"
 
     def get_location(self):
@@ -26,6 +22,9 @@ class WorkersJobsViewSet(
     def get_queryset(self):
         name = self.kwargs.get(self.lookup_field)
         qs = self.queryset
+
+        if "all" not in self.request.GET:
+            qs = qs.filter(test_run__draft=False)
 
         if "location" not in self.kwargs:
             return TestRunLocation.objects.none()
@@ -36,8 +35,6 @@ class WorkersJobsViewSet(
         if "location" in self.kwargs:
             qs = qs.filter(location=self.kwargs["location"])
 
-        # if self.request.user.is_authenticated:
-        #     queryset = queryset.filter(user=self.request.user)
         return qs
 
     @action(detail=True, methods=["post"])
