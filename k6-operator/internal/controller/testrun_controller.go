@@ -238,8 +238,8 @@ func (r *TestRunReconciler) syncJob(ctx context.Context, job *loadtestingapi.Job
 		}
 
 		command := []string{"k6", "run", "--paused", "--address", "0.0.0.0:6565"}
-		if output, found := job.TestRun.EnvVars["OUTPUT"]; found {
-			command = append(command, "-o", output)
+		if verbose := job.TestRun.EnvVars["K6_VERBOSE"]; verbose == "true" {
+			command = append(command, "--verbose")
 		}
 
 		tags := job.TestRun.Labels
@@ -416,8 +416,7 @@ func isPodFailed(pod *corev1.Pod) bool {
 
 func isPodStableReady(pod *corev1.Pod) bool {
 	now := time.Now()
-	stabilityPeriod := 2 * time.Minute
-	stabilityPeriod = 1 * time.Second
+	stabilityPeriod := 30 * time.Second
 
 	for _, condition := range pod.Status.Conditions {
 		if condition.Type == corev1.PodReady && condition.LastTransitionTime.Add(stabilityPeriod).Before(now) {
