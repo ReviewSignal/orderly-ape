@@ -1,3 +1,5 @@
+from urllib.parse import quote as urlquote
+
 from dal import autocomplete
 from django import forms
 from django.contrib import admin
@@ -253,28 +255,46 @@ class TestRunAdmin(admin.ModelAdmin):
             extra_actions["duplicate"] = _("+ Duplicate")
 
             if obj.draft:
-                extra_actions["runtest"] = _("▶ Run test")
+                extra_actions["saveandrun"] = _("▶ Save and Run test")
 
         extra_context["extra_actions"] = extra_actions  # pyright: ignore [reportArgumentType]
+
         return super().changeform_view(request, object_id, form_url, extra_context)
 
     def response_change(self, request, obj: TestRun):
-        if "_runtest" in request.POST:
-            obj.draft = False
-            obj.save()
-            self.message_user(request, "Test run started.")
-            redirect_url = reverse(
-                "admin:%s_%s_changelist" % (obj._meta.app_label, obj._meta.model_name)
+        opts = self.opts
+        msg_dict = {
+            "name": opts.verbose_name,
+            "obj": format_html('<a href="{}">{}</a>', urlquote(request.path), obj),
+        }
+
+        if "_saveandrun" in request.POST:
+            msg = format_html(
+                _("The {name} “{obj}” started successfully."),
+                **msg_dict,
             )
-            return HttpResponseRedirect(redirect_url)
+
+            if obj:
+                obj.draft = False
+                obj.save()
+                self.log_change(request, obj, "Started test")
+                self.message_user(request, msg)
+
+            return self.response_post_save_change(request, obj)
 
         if "_duplicate" in request.POST:
-            dup = duplicate_test_run(obj)
-            redirect_url = reverse(
-                "admin:%s_%s_change" % (dup._meta.app_label, dup._meta.model_name),
-                args=[dup.pk],
+            msg = format_html(
+                _("The {name} “{obj}” duplicated successfully. You can edit it below"),
+                **msg_dict,
             )
-            return HttpResponseRedirect(redirect_url)
+            if obj:
+                dup = duplicate_test_run(obj)
+                self.log_addition(request, dup, f"Duplicated test {obj}")
+                redirect_url = reverse(
+                    "admin:%s_%s_change" % (dup._meta.app_label, dup._meta.model_name),
+                    args=[dup.pk],
+                )
+                return HttpResponseRedirect(redirect_url)
 
         return super().response_change(request, obj)
 
