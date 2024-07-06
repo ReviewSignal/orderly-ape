@@ -309,6 +309,7 @@ func (r *TestRunReconciler) syncJob(ctx context.Context, job *loadtestingapi.Job
 		}
 
 		probe := &corev1.Probe{
+			InitialDelaySeconds: 30,
 			ProbeHandler: corev1.ProbeHandler{
 				HTTPGet: &corev1.HTTPGetAction{
 					Path:   "/v1/status",
