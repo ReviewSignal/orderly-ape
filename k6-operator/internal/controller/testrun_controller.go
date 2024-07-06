@@ -34,10 +34,18 @@ import (
 	loadtestingruntime "github.com/ReviewSignal/loadtesting/k6-operator/internal/loadtesting/runtime"
 )
 
+const telegrafConfigVersion = 1
+
 var (
 	zero64   int64 = 0
 	zero32   int32 = 0
 	falsePtr *bool = func(b bool) *bool { return &b }(false)
+	truePtr  *bool = func(b bool) *bool { return &b }(true)
+	userID   int64 = 65534
+	groupID  int64 = 65534
+
+	telegrafFlushIntervalSeconds = 10
+	telegrafFlushJitterSeconds   = 5
 )
 
 // TestRunReconciler reconciles a TestRun object
@@ -51,6 +59,8 @@ type TestRunReconciler struct {
 }
 
 //+kubebuilder:rbac:groups=batch,resources=jobs,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=policy,resources=poddisruptionbudgets,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=core,resources=secrets,verbs=create
 //+kubebuilder:rbac:groups=batch,resources=jobs/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=batch,resources=jobs/finalizers,verbs=update
 
@@ -110,11 +120,16 @@ func (r *TestRunReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			}
 			return ctrl.Result{}, err
 		}
-	}
 
-	_, err = r.syncPodDisruptionBudget(ctx, job, obj)
-	if err != nil {
-		return ctrl.Result{}, err
+		_, err = r.syncTelegrafConfig(ctx, job, obj)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+
+		_, err = r.syncPodDisruptionBudget(ctx, job, obj)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
 	}
 
 	if cond := getJobCondition(obj, batchv1.JobFailed); cond != nil {
@@ -218,7 +233,7 @@ func (r *TestRunReconciler) syncPodDisruptionBudget(ctx context.Context, job *lo
 		obj.Labels["app.kubernetes.io/instance"] = job.GetName()
 		obj.Labels["app.kubernetes.io/managed-by"] = "orderly-ape"
 
-		err := controllerutil.SetOwnerReference(obj, parent, r.Scheme)
+		err := controllerutil.SetOwnerReference(parent, obj, r.Scheme)
 		if err != nil {
 			return err
 		}
@@ -237,6 +252,79 @@ func (r *TestRunReconciler) syncPodDisruptionBudget(ctx context.Context, job *lo
 	})
 
 	return obj, err
+}
+
+func (r *TestRunReconciler) syncTelegrafConfig(ctx context.Context, job *loadtestingapi.Job, parent *batchv1.Job) (*corev1.Secret, error) {
+	obj := &corev1.Secret{
+		ObjectMeta: ctrl.ObjectMeta{
+			Name:      fmt.Sprintf("%s-%d", job.GetName(), telegrafConfigVersion),
+			Namespace: job.GetNamespace(),
+			Labels: map[string]string{
+				"app.kubernetes.io/name":       "k6",
+				"app.kubernetes.io/instance":   job.GetName(),
+				"app.kubernetes.io/managed-by": "orderly-ape",
+			},
+		},
+		StringData: map[string]string{
+			"telegraf.conf": fmt.Sprintf(`
+[agent]
+interval = "5s"
+flush_interval = "%ds"
+flush_jitter = "%ds"
+
+# Statsd Server
+[[inputs.statsd]]
+  ## Protocol, must be "tcp", "udp4", "udp6" or "udp" (default=udp)
+  protocol = "udp"
+
+  ## Address and port to host UDP listener on
+  service_address = ":8125"
+
+  ## Percentiles to calculate for timing & histogram stats.
+  percentiles = [90.0, 95.0, 99.0, 99.9, 99.95]
+
+  ## Parses extensions to statsd in the datadog statsd format
+  ## currently supports metrics and datadog tags.
+  ## http://docs.datadoghq.com/guides/dogstatsd/
+  datadog_extensions = true
+
+[[outputs.influxdb_v2]]
+  ## The URLs of the InfluxDB cluster nodes.
+  ##
+  ## Multiple URLs can be specified for a single cluster, only ONE of the
+  ## urls will be written to each interval.
+  ##   ex: urls = ["https://us-west-2-1.aws.cloud2.influxdata.com"]
+  urls = ["%s"]
+
+  ## Token for authentication.
+  token = "%s"
+
+  ## Organization is the name of the organization you wish to write to.
+  organization = "%s"
+
+  ## Destination bucket to write into.
+  bucket = "%s"
+            `,
+				telegrafFlushIntervalSeconds,
+				telegrafFlushJitterSeconds,
+				job.TestRun.EnvVars["K6_INFLUXDB_ADDR"],
+				job.TestRun.EnvVars["K6_INFLUXDB_TOKEN"],
+				job.TestRun.EnvVars["K6_INFLUXDB_ORGANIZATION"],
+				job.TestRun.EnvVars["K6_INFLUXDB_BUCKET"]),
+		},
+	}
+
+	err := controllerutil.SetOwnerReference(parent, obj, r.Scheme)
+	if err != nil {
+		return nil, err
+	}
+
+	err = r.Create(ctx, obj)
+	if client.IgnoreAlreadyExists(err) != nil {
+		return nil, err
+	}
+
+	return obj, nil
 }
 
 func (r *TestRunReconciler) syncJob(ctx context.Context, job *loadtestingapi.Job) (*batchv1.Job, error) {
@@ -267,8 +355,16 @@ func (r *TestRunReconciler) syncJob(ctx context.Context, job *loadtestingapi.Job
 
 		pod := &corev1.PodTemplateSpec{}
 
+		gracePeriod := int64(telegrafFlushIntervalSeconds*2 + telegrafFlushJitterSeconds)
+
 		pod.Spec.RestartPolicy = corev1.RestartPolicyNever
-		pod.Spec.TerminationGracePeriodSeconds = &zero64
+		pod.Spec.TerminationGracePeriodSeconds = &gracePeriod
+		pod.Spec.ShareProcessNamespace = truePtr
+		pod.Spec.SecurityContext = &corev1.PodSecurityContext{
+			FSGroup:    &groupID,
+			RunAsUser:  &userID,
+			RunAsGroup: &groupID,
+		}
 
 		pod.Spec.NodeSelector = job.TestRun.NodeSelector
 
@@ -334,6 +430,16 @@ func (r *TestRunReconciler) syncJob(ctx context.Context, job *loadtestingapi.Job
 					},
 				},
 			)
+			pod.Spec.Volumes = corev1util.UpsertVolume(pod.Spec.Volumes,
+				corev1.Volume{
+					Name: "telegraf-config",
+					VolumeSource: corev1.VolumeSource{
+						Secret: &corev1.SecretVolumeSource{
+							SecretName: fmt.Sprintf("%s-%d", job.GetName(), telegrafConfigVersion),
+						},
+					},
+				},
+			)
 		}
 
 		if corev1util.GetContainerByName(pod.Spec.InitContainers, "git") == nil {
@@ -345,12 +451,15 @@ func (r *TestRunReconciler) syncJob(ctx context.Context, job *loadtestingapi.Job
 					WorkingDir:      "/scripts",
 					Command: []string{"/bin/sh", "-c",
 						strings.Join([]string{
+							"mkdir -p /tmp/nobody",
+							"export HOME=/tmp/nobody",
 							"set -eo pipefail",
 							"set -x",
-							"git init",
+							"git config --global --add safe.directory '/scripts'",
+							"git init -q",
 							"git remote add origin https://" + job.TestRun.SourceRepo,
-							"git fetch --depth=1 origin " + job.TestRun.SourceRef,
-							"git checkout FETCH_HEAD",
+							"git fetch -q --depth=1 origin " + job.TestRun.SourceRef,
+							"git checkout -q FETCH_HEAD",
 						}, "\n"),
 					},
 					VolumeMounts: []corev1.VolumeMount{{
@@ -391,7 +500,7 @@ func (r *TestRunReconciler) syncJob(ctx context.Context, job *loadtestingapi.Job
 			corev1.Container{
 				Name: "k6",
 				// Image:           "loadimpact/k6",
-				Image: "europe-west4-docker.pkg.dev/calins-playground/k6-testing/k6-influxdb:latest",
+				Image: "europe-west4-docker.pkg.dev/calins-playground/k6-testing/k6-influxdb:v2",
 
 				ImagePullPolicy: corev1.PullIfNotPresent,
 				WorkingDir:      "/scripts",
@@ -399,11 +508,27 @@ func (r *TestRunReconciler) syncJob(ctx context.Context, job *loadtestingapi.Job
 					strings.Join([]string{
 						script,
 						`EXIT_CODE=$?`,
+						`echo "allow telegraf to flush it's metrics"`,
+						fmt.Sprintf(`sleep %d`, gracePeriod),
+						`killall telegraf || true`,
 						`echo "k6 terminated with exit code: $EXIT_CODE"`,
 						// 99 is the k6 exit code for ThresholdsHaveFailed.
 						// This is not an error from the operator's perspective.
 						`if [ $EXIT_CODE -ne 0 ] && [ $EXIT_CODE -ne 99 ]; then exit $EXIT_CODE; fi`,
 					}, "\n"),
+				},
+				Lifecycle: &corev1.Lifecycle{
+					PreStop: &corev1.LifecycleHandler{
+						Exec: &corev1.ExecAction{
+							Command: []string{"/bin/sh", "-c",
+								strings.Join([]string{
+									`echo "allow telegraf to flush it's metrics"`,
+									fmt.Sprintf(`sleep %d`, gracePeriod),
+									`killall telegraf || true`,
+								}, "\n"),
+							},
+						},
+					},
 				},
 				Env: env,
 				Ports: []corev1.ContainerPort{{
@@ -422,6 +547,18 @@ func (r *TestRunReconciler) syncJob(ctx context.Context, job *loadtestingapi.Job
 						corev1.ResourceMemory: job.TestRun.ResourceMemory,
 					},
 				},
+			},
+		)
+
+		pod.Spec.Containers = corev1util.UpsertContainer(pod.Spec.Containers,
+			corev1.Container{
+				Name:            "telegraf",
+				Image:           "telegraf:1.31.1-alpine",
+				ImagePullPolicy: corev1.PullIfNotPresent,
+				VolumeMounts: []corev1.VolumeMount{{
+					Name:      "telegraf-config",
+					MountPath: "/etc/telegraf",
+				}},
 			},
 		)
 

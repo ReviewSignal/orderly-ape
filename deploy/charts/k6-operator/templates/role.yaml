@@ -6,6 +6,12 @@ metadata:
     {{- include "k6-operator.labels" . | nindent 4 }}
 rules:
 - apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - create
+- apiGroups:
   - batch
   resources:
   - jobs
