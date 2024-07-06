@@ -346,6 +346,7 @@ func (r *TestRunReconciler) syncJob(ctx context.Context, job *loadtestingapi.Job
 					strings.Join([]string{
 						script,
 						`EXIT_CODE=$?`,
+						`echo "k6 terminated with exit code: $EXIT_CODE"`,
 						// 99 is the k6 exit code for ThresholdsHaveFailed.
 						// This is not an error from the operator's perspective.
 						`if [ $EXIT_CODE -ne 0 ] && [ $EXIT_CODE -ne 99 ]; then exit $EXIT_CODE; fi`,
