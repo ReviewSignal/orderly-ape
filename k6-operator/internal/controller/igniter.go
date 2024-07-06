@@ -91,7 +91,7 @@ func (r *TestRunReconciler) createIgniter(ctx context.Context, job *loadtestinga
 	}
 
 	if !job.TestRun.Ready || job.TestRun.StartTestAt == nil {
-		return nil, fmt.Errorf("job '%s' is not ready to start", job.Name)
+		return nil, fmt.Errorf("Job is not ready to be ignited")
 	}
 
 	pods, err := r.getPods(ctx, job)

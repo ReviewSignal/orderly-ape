@@ -139,11 +139,7 @@ func (r *TestRunReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		}
 	}
 
-	if job.Status == loadtestingapi.STATUS_READY && job.TestRun.Ready {
-		if job.TestRun.StartTestAt == nil {
-			return ctrl.Result{}, fmt.Errorf("TestRun is ready but StartTestAt is nil")
-		}
-
+	if job.Status == loadtestingapi.STATUS_READY {
 		igniter, err := r.createIgniter(ctx, job)
 		if err != nil {
 			return ctrl.Result{}, err
