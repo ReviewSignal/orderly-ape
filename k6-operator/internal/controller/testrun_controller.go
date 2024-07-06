@@ -12,6 +12,7 @@ import (
 	"github.com/alessio/shellescape"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
+	policyv1 "k8s.io/api/policy/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -22,6 +23,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
@@ -95,6 +97,11 @@ func (r *TestRunReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			}
 			return ctrl.Result{}, err
 		}
+	}
+
+	_, err = r.syncPodDisruptionBudget(ctx, job, obj)
+	if err != nil {
+		return ctrl.Result{}, err
 	}
 
 	if cond := getJobCondition(obj, batchv1.JobFailed); cond != nil {
@@ -181,6 +188,41 @@ func (r *TestRunReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 
 	return ctrl.Result{}, nil
+}
+func (r *TestRunReconciler) syncPodDisruptionBudget(ctx context.Context, job *loadtestingapi.Job, parent *batchv1.Job) (*policyv1.PodDisruptionBudget, error) {
+	obj := &policyv1.PodDisruptionBudget{
+		ObjectMeta: ctrl.ObjectMeta{
+			Name:      job.GetName(),
+			Namespace: job.GetNamespace(),
+		},
+	}
+	_, err := ctrl.CreateOrUpdate(ctx, r.Client, obj, func() error {
+		if len(obj.Labels) == 0 {
+			obj.Labels = make(map[string]string)
+		}
+		obj.Labels["app.kubernetes.io/name"] = "k6"
+		obj.Labels["app.kubernetes.io/instance"] = job.GetName()
+		obj.Labels["app.kubernetes.io/managed-by"] = "orderly-ape"
+
+		err := controllerutil.SetOwnerReference(obj, parent, r.Scheme)
+		if err != nil {
+			return err
+		}
+
+		obj.Spec.Selector = &metav1.LabelSelector{
+			MatchLabels: map[string]string{
+				"batch.kubernetes.io/job-name": job.GetName(),
+			},
+		}
+
+		count := len(job.AssignedSegments)
+		replicas := intstr.FromInt(count)
+		obj.Spec.MinAvailable = &replicas
+
+		return nil
+	})
+
+	return obj, err
 }
 
 func (r *TestRunReconciler) syncJob(ctx context.Context, job *loadtestingapi.Job) (*batchv1.Job, error) {
