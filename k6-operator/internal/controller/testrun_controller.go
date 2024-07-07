@@ -82,12 +82,13 @@ func (r *TestRunReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		l.Error(err, "Failed retrieving Job from API", "job", job)
 		return ctrl.Result{}, err
 	}
+	l = l.WithValues("status", job.Status)
+
+	// If the job is completed or failed, we don't need to do anything
 	if job.Status == loadtestingapi.STATUS_COMPLETED || job.Status == loadtestingapi.STATUS_FAILED {
+		r.removeIgniter(job)
 		return ctrl.Result{}, nil
 	}
-
-	l = l.WithValues("status", job.Status)
-	l.Info("Reconciling TestRun")
 
 	obj := &batchv1.Job{}
 	err = r.Get(ctx, req.NamespacedName, obj)
@@ -98,6 +99,21 @@ func (r *TestRunReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	if obj.GetDeletionTimestamp() != nil {
 		return ctrl.Result{}, nil
 	}
+
+	// If the job is canceled, we need to suspend the job
+	if job.Status == loadtestingapi.STATUS_CANCELED {
+		// If the Job exists in kubernetes, we need to suspend it
+		if err == nil && (obj.Spec.Suspend == nil || !*obj.Spec.Suspend) {
+			l.Info("Suspending canceled TestRun")
+			obj.Spec.Suspend = truePtr
+			err = r.Update(ctx, obj)
+		}
+		r.removeIgniter(job)
+		return ctrl.Result{}, client.IgnoreNotFound(err)
+	}
+
+	// From here on, we are handling jobs that are not completed, failed or canceled
+	l.Info("Reconciling TestRun")
 
 	if apierrors.IsNotFound(err) && job.Status != loadtestingapi.STATUS_PENDING {
 		job.Status = loadtestingapi.STATUS_FAILED
@@ -343,6 +359,8 @@ func (r *TestRunReconciler) syncJob(ctx context.Context, job *loadtestingapi.Job
 		obj.Labels["app.kubernetes.io/managed-by"] = "orderly-ape"
 
 		count := int32(len(job.AssignedSegments))
+		ttlSecondsAferFinished := int32(3600) // keep the job for 1 hour after it finishes
+		obj.Spec.TTLSecondsAfterFinished = &ttlSecondsAferFinished
 		obj.Spec.Parallelism = &count
 		obj.Spec.Completions = &count
 		obj.Spec.BackoffLimit = &zero32
@@ -505,30 +523,26 @@ func (r *TestRunReconciler) syncJob(ctx context.Context, job *loadtestingapi.Job
 				ImagePullPolicy: corev1.PullIfNotPresent,
 				WorkingDir:      "/scripts",
 				Command: []string{"/bin/sh", "-c",
-					strings.Join([]string{
-						script,
-						`EXIT_CODE=$?`,
-						`echo "allow telegraf to flush it's metrics"`,
-						fmt.Sprintf(`sleep %d`, gracePeriod),
-						`killall telegraf || true`,
-						`echo "k6 terminated with exit code: $EXIT_CODE"`,
-						// 99 is the k6 exit code for ThresholdsHaveFailed.
-						// This is not an error from the operator's perspective.
-						`if [ $EXIT_CODE -ne 0 ] && [ $EXIT_CODE -ne 99 ]; then exit $EXIT_CODE; fi`,
-					}, "\n"),
-				},
-				Lifecycle: &corev1.Lifecycle{
-					PreStop: &corev1.LifecycleHandler{
-						Exec: &corev1.ExecAction{
-							Command: []string{"/bin/sh", "-c",
-								strings.Join([]string{
-									`echo "allow telegraf to flush it's metrics"`,
-									fmt.Sprintf(`sleep %d`, gracePeriod),
-									`killall telegraf || true`,
-								}, "\n"),
-							},
-						},
-					},
+					fmt.Sprintf(`
+                        PID=""
+                        terminate() {
+                            echo "Received TERM signal. Killing k6" >&2
+                            if [ -n "$PID" ] ; then kill -TERM $PID || true ; fi
+                        }
+                        trap 'terminate' TERM
+                        %s & PID=$!
+                        wait $PID
+                        EXIT_CODE=$?
+                        echo "k6 finished with code $EXIT_CODE" >&2
+                        echo "Allow telegraf to flush it's metrics" >&2
+                        sleep %d
+                        echo "Killing telegraf" >&2
+                        killall telegraf || true
+                        # 99 is the k6 exit code for ThresholdsHaveFailed.
+                        # This is not an error from the operator's perspective.
+                        if [ $EXIT_CODE -ne 0 ] && [ $EXIT_CODE -ne 99 ] ; then exit $EXIT_CODE ; fi
+                        exit 0
+                    `, script, gracePeriod),
 				},
 				Env: env,
 				Ports: []corev1.ContainerPort{{
@@ -559,6 +573,18 @@ func (r *TestRunReconciler) syncJob(ctx context.Context, job *loadtestingapi.Job
 					Name:      "telegraf-config",
 					MountPath: "/etc/telegraf",
 				}},
+				Lifecycle: &corev1.Lifecycle{
+					PreStop: &corev1.LifecycleHandler{
+						Exec: &corev1.ExecAction{
+							Command: []string{"/bin/sh", "-c",
+								fmt.Sprintf(`
+									echo "Allow telegraf to flush it's metrics" >&2
+									sleep %d
+								`, telegrafFlushIntervalSeconds),
+							},
+						},
+					},
+				},
 			},
 		)
 

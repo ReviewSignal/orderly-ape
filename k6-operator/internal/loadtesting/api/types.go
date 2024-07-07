@@ -20,6 +20,7 @@ const (
 	STATUS_QUEUED    string = "queued"
 	STATUS_READY     string = "ready"
 	STATUS_RUNNING   string = "running"
+	STATUS_CANCELED  string = "canceled"
 	STATUS_COMPLETED string = "completed"
 	STATUS_FAILED    string = "failed"
 )

@@ -3,6 +3,7 @@ from urllib.parse import quote as urlquote
 from dal import autocomplete
 from django import forms
 from django.contrib import admin
+from django.db.models import QuerySet
 from django.forms import ModelForm
 from django.forms.models import BaseInlineFormSet
 from django.forms.utils import flatatt
@@ -191,6 +192,7 @@ class TestRunAdmin(admin.ModelAdmin):
     readonly_fields = ("draft",)
     form = TestRunAdminForm
     inlines = [TestRunLocationInline, TestRunEnvVarInline, TestRunLabelInline]
+    actions = ["start_test_runs", "cancel_test_runs"]
 
     def get_readonly_fields(self, request, obj=None):
         readonly_fields = list(super().get_readonly_fields(request, obj))
@@ -225,24 +227,62 @@ class TestRunAdmin(admin.ModelAdmin):
     def live(self, obj: TestRun):
         return not obj.draft
 
+    @admin.action(
+        description=f"Start selected {TestRun._meta.verbose_name_plural}",
+        permissions=["change"],
+    )
+    def start_test_runs(self, request, queryset: QuerySet[TestRun]):
+        count = 0
+        for test_run in queryset.filter(draft=True).all():
+            test_run.start()
+            self.log_change(request, test_run, "Started test")
+            count += 1
+
+        self.message_user(
+            request, f"Started {count} {TestRun._meta.verbose_name_plural}"
+        )
+
+    @admin.action(
+        description=f"Cancel selected {TestRun._meta.verbose_name_plural}",
+        permissions=["change"],
+    )
+    def cancel_test_runs(self, request, queryset: QuerySet[TestRun]):
+        count = 0
+        for test_run in queryset.filter(draft=False).all():
+            status = test_run.statuses
+            total = test_run.statuses["total"]
+            if (
+                status.get(TestRunLocation.Status.FAILED, 0) == 0
+                and status.get(TestRunLocation.Status.COMPLETED, 0) != total
+            ):
+                count += 1
+                test_run.cancel("Test manually canceled")
+                self.log_change(request, test_run, "Canceled test")
+
+        self.message_user(
+            request, f"Canceled {count} {TestRun._meta.verbose_name_plural}"
+        )
+
     def status(self, obj: TestRun):
         status = obj.statuses
         total = obj.statuses["total"]
 
         if status.get(TestRunLocation.Status.FAILED, 0) > 0:
-            return "failed"
+            return TestRunLocation.Status.FAILED.label
+        elif status.get(TestRunLocation.Status.CANCELED, 0) > 0:
+            return TestRunLocation.Status.CANCELED.label
         elif status.get(TestRunLocation.Status.COMPLETED, 0) == total:
-            return "completed"
+            return TestRunLocation.Status.COMPLETED.label
         elif status.get(TestRunLocation.Status.PENDING, 0) > 0:
-            return "pending"
+            return TestRunLocation.Status.PENDING.label
         elif status.get(TestRunLocation.Status.QUEUED, 0) > 0:
-            return "queued"
+            return TestRunLocation.Status.QUEUED.label
         elif status.get(TestRunLocation.Status.READY, 0) > 0:
-            return "ready"
+            return TestRunLocation.Status.READY.label
         elif status.get(TestRunLocation.Status.RUNNING, 0) > 0:
-            return "running"
+            return TestRunLocation.Status.RUNNING.label
         else:
-            return "unknown"
+            return _("Unknown")
 
     def changeform_view(self, request, object_id=None, form_url="", extra_context=None):
         obj: TestRun | None = self.get_object(request, object_id or "")

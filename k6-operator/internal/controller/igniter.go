@@ -27,6 +27,7 @@ type Igniter struct {
 	Error    error
 	Job      *loadtestingapi.Job
 	PodNames []string
+	Cancel   context.CancelFunc
 	groupCtx context.Context
 }
 
@@ -85,6 +86,10 @@ func (i *Igniter) Start(ctx context.Context, r *TestRunReconciler) error {
 	return nil
 }
 
+func (i *Igniter) Stop() {
+	i.Cancel()
+}
+
 func (r *TestRunReconciler) createIgniter(ctx context.Context, job *loadtestingapi.Job) (*Igniter, error) {
 	if _, found := r.igniters[job.Name]; found {
 		return r.igniters[job.Name], nil
@@ -110,12 +115,14 @@ func (r *TestRunReconciler) createIgniter(ctx context.Context, job *loadtestinga
 
 	// create a new context with logger
 	ctx = ctrl.LoggerInto(context.Background(), l)
+	ctx, cancel := context.WithCancel(ctx)
 	g, ctx := errgroup.WithContext(ctx)
 
 	igniter := &Igniter{
 		Job:      job,
 		Group:    g,
 		PodNames: podNames,
+		Cancel:   cancel,
 		groupCtx: ctx,
 	}
 	r.igniters[job.Name] = igniter
@@ -123,4 +130,11 @@ func (r *TestRunReconciler) createIgniter(ctx context.Context, job *loadtestinga
 	go igniter.Start(ctx, r)
 
 	return igniter, nil
+}
+
+func (r *TestRunReconciler) removeIgniter(job *loadtestingapi.Job) {
+	if igniter, found := r.igniters[job.Name]; found {
+		igniter.Stop()
+	}
+	delete(r.igniters, job.Name)
 }

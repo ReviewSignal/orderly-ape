@@ -172,6 +172,23 @@ class TestRun(BaseNamedModel):
             )
         super().save(*args, **kwargs)
 
+    @transaction.atomic
+    def cancel(self, message: str | None = None):
+        for location in self.locations.exclude(
+            status__in=[
+                TestRunLocation.Status.COMPLETED,
+                TestRunLocation.Status.CANCELED,
+                TestRunLocation.Status.FAILED,
+            ]
+        ):
+            location.cancel(message)
+            location.save()
+
+    def start(self, commit=True):
+        self.draft = False
+        if commit:
+            self.save()
+
 
 class TestRunLabel(BaseBareModel):
     name = models.SlugField(
@@ -199,7 +216,7 @@ class TestRunEnvVar(BaseBareModel):
         verbose_name=_("Name"), help_text=_("Environment variable name")
     )
     value = models.TextField(
-        verbose_name=_("Value"), help_text=_("Environment variable value")
+        blank=True, verbose_name=_("Value"), help_text=_("Environment variable value")
     )
     test_run = models.ForeignKey(
         TestRun,
@@ -219,6 +236,7 @@ class TestRunLocation(BaseBareModel):
         QUEUED = "queued", _("Queued")
         READY = "ready", _("Ready")
         RUNNING = "running", _("Running")
+        CANCELED = "canceled", _("Canceled")
         COMPLETED = "completed", _("Completed")
         FAILED = "failed", _("Failed")
 
@@ -285,6 +303,8 @@ class TestRunLocation(BaseBareModel):
             return _("Test is running")
         elif self.status == self.Status.COMPLETED:
             return _("Test has completed successfully")
+        elif self.status == self.Status.CANCELED:
+            return _("Job was canceled.")
 
     @transition(field=status, source=Status.PENDING, target=Status.QUEUED)
     def accept(self):
@@ -309,6 +329,11 @@ class TestRunLocation(BaseBareModel):
 
     @transition(field=status, target=Status.FAILED)
     def fail(self, message: str | None = None):
+        if message:
+            self.status_description = message
+
+    @transition(field=status, target=Status.CANCELED)
+    def cancel(self, message: str | None = None):
         if message:
             self.status_description = message
 
