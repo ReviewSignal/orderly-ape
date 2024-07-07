@@ -72,6 +72,9 @@ func (r *TestRunReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		l.Error(err, "Failed retrieving Job from API", "job", job)
 		return ctrl.Result{}, err
 	}
+	if job.Status == loadtestingapi.STATUS_COMPLETED || job.Status == loadtestingapi.STATUS_FAILED {
+		return ctrl.Result{}, nil
+	}
 
 	l = l.WithValues("status", job.Status)
 	l.Info("Reconciling TestRun")
@@ -86,7 +89,17 @@ func (r *TestRunReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, nil
 	}
 
-	if apierrors.IsNotFound(err) {
+	if apierrors.IsNotFound(err) && job.Status != loadtestingapi.STATUS_PENDING {
+		job.Status = loadtestingapi.STATUS_FAILED
+		job.StatusDescription = fmt.Sprintf("Test was `%s` but no Kubernetes Job found", job.Status)
+		err = r.APIClient.Update(ctx, job)
+		if err != nil {
+			l.Error(err, "Failed updating job status", "job", job)
+		}
+		return ctrl.Result{}, nil
+	}
+
+	if apierrors.IsNotFound(err) && job.Status == loadtestingapi.STATUS_PENDING {
 		obj, err = r.syncJob(ctx, job)
 		if err != nil {
 			job.Status = loadtestingapi.STATUS_FAILED
@@ -189,6 +202,7 @@ func (r *TestRunReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	return ctrl.Result{}, nil
 }
+
 func (r *TestRunReconciler) syncPodDisruptionBudget(ctx context.Context, job *loadtestingapi.Job, parent *batchv1.Job) (*policyv1.PodDisruptionBudget, error) {
 	obj := &policyv1.PodDisruptionBudget{
 		ObjectMeta: ctrl.ObjectMeta{
