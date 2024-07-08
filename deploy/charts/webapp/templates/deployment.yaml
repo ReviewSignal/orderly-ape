@@ -46,8 +46,6 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: status.podIP
-            - name: DEBUG
-              value: "false"
             - name: ALLOWED_HOSTS
               value: localhost,127.0.0.1,$(MY_POD_IP){{ if .Values.ingress.enabled }}{{ range .Values.ingress.hosts }}{{ print "," .host }}{{ end }}{{ end }}
             {{- if and .Values.ingress.enabled .Values.ingress.tls }}
@@ -56,9 +54,18 @@ spec:
             {{- end }}
             - name: DATABASE_URL
               value: sqlite:////data/db.sqlite3
+            {{- with .Values.env }}
+              {{- toYaml . | nindent 12 }}
+            {{- end }}
           volumeMounts:
             - mountPath: /data
               name: data
+          {{- if .Values.secret }}
+            - mountPath: /run/secrets
+              name: secrets
+              secret:
+                secretName: {{ include "orderly-ape.fullname" . }}
+          {{- end }}
           {{- with .Values.volumeMounts }}
             {{- toYaml . | nindent 12 }}
           {{- end }}
@@ -73,8 +80,6 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: status.podIP
-            - name: DEBUG
-              value: "false"
             - name: ALLOWED_HOSTS
               value: localhost,127.0.0.1,$(MY_POD_IP){{ if .Values.ingress.enabled }}{{ range .Values.ingress.hosts }}{{ print "," .host }}{{ end }}{{ end }}
             {{- if and .Values.ingress.enabled .Values.ingress.tls }}
@@ -83,6 +88,9 @@ spec:
             {{- end }}
             - name: DATABASE_URL
               value: sqlite:////data/db.sqlite3
+            {{- with .Values.env }}
+              {{- toYaml . | nindent 12 }}
+            {{- end }}
           ports:
             - name: http
               containerPort: {{ .Values.service.port }}
@@ -96,6 +104,12 @@ spec:
           volumeMounts:
             - mountPath: /data
               name: data
+          {{- if .Values.secret }}
+            - mountPath: /run/secrets
+              name: secrets
+              secret:
+                secretName: {{ include "orderly-ape.fullname" . }}
+          {{- end }}
           {{- with .Values.volumeMounts }}
             {{- toYaml . | nindent 12 }}
           {{- end }}
@@ -107,6 +121,11 @@ spec:
           {{- else }}
           emptyDir: {}
           {{- end }}
+      {{- if .Values.secret }}
+        - name: secrets
+          secret:
+            secretName: {{ include "orderly-ape.fullname" . }}
+      {{- end }}
       {{- with .Values.volumes }}
         {{- toYaml . | nindent 8 }}
       {{- end }}

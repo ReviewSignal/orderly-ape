@@ -190,3 +190,8 @@ REST_FRAMEWORK = {
     # Use Django's standard `django.contrib.auth` permissions,
     "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.DjangoModelPermissions"]
 }
+
+GRAFANA_DASHBOARD_URL = env.str(
+    "GRAFANA_DASHBOARD_URL",
+    default="http://localhost:3000/d/1/orderly-ape-summary?orgId=1",
+)

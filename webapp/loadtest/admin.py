@@ -181,6 +181,7 @@ class TestRunAdmin(admin.ModelAdmin):
     list_display = [
         "name",
         "target",
+        "results_link",
         "script",
         "live",
         "status",
@@ -222,6 +223,12 @@ class TestRunAdmin(admin.ModelAdmin):
             )
             script = f'<a href="{link}" target="_blank">{script}</a>'
         return mark_safe(script)
+
+    @admin.display(description="Results")
+    def results_link(self, obj: TestRun):
+        url = obj.grafana_url
+        results_link = f'[ <a href="{url}" target="_blank">Summary</a> ]'
+        return mark_safe(results_link)
 
     @admin.display(boolean=True, ordering="draft")
     def live(self, obj: TestRun):

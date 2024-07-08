@@ -1,8 +1,10 @@
 from typing import TYPE_CHECKING
 
+from django.conf import settings
 from django.db import models, transaction
 from django.db.models import Sum
 from django.db.models.functions import Now
+from django.utils import timezone
 from django.utils.crypto import get_random_string
 from django.utils.functional import cached_property
 from django.utils.text import slugify
@@ -156,6 +158,20 @@ class TestRun(BaseNamedModel):
         workers = sum([location.num_workers for location in locations])
 
         return ["0"] + [f"{idx}/{workers}" for idx in range(1, workers)] + ["1"]
+
+    @property
+    def grafana_url(self) -> str:
+        date_from = "now-1h"
+        date_to = "not"
+
+        if self.start_test_at:
+            _date_from = (self.start_test_at + timezone.timedelta(minutes=-5)).replace(
+                second=0, microsecond=0
+            )
+            date_from = int(_date_from.timestamp() * 1000)
+            date_to = int((_date_from + timezone.timedelta(hours=1)).timestamp() * 1000)
+        url = f"{settings.GRAFANA_DASHBOARD_URL}&var-testid={self.name}&from={date_from}&to={date_to}"
+        return url
 
     class Meta:  # pyright: ignore [reportIncompatibleVariableOverride]
         verbose_name = _("Test Run")

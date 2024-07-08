@@ -12,3 +12,7 @@ ingress:
 persistence:
   enabled: true
   storageClassName: standard-rwo
+
+env:
+  - name: GRAFANA_DASHBOARD_URL
+    value: "http://34.91.224.113/d/bdqz4a3k8j08wa/k6-test-results-via-statsd?orgId=1"
