@@ -60,6 +60,10 @@ func (c *UncachedClient) List(ctx context.Context, obj runtime.ObjectList) error
 		return respErr
 	}
 
+	if resp.IsError() {
+		return NewStatusError(resp)
+	}
+
 	result := resp.Result()
 	resultReflect := reflect.ValueOf(result)
 
@@ -108,6 +112,10 @@ func (c *UncachedClient) Get(ctx context.Context, id string, obj runtime.Object)
 
 	if respErr != nil {
 		return respErr
+	}
+
+	if resp.IsError() {
+		return NewStatusError(resp)
 	}
 
 	newObj := reflect.Indirect(reflect.ValueOf(resp.Result()))
@@ -172,7 +180,7 @@ func (c *UncachedClient) Update(ctx context.Context, obj runtime.Object) error {
 	}
 
 	if resp.StatusCode() != 200 {
-		return fmt.Errorf("unexpected status code: %d: %s", resp.StatusCode(), resp.String())
+		return NewStatusError(resp)
 	}
 
 	newObj := reflect.Indirect(reflect.ValueOf(resp.Result()))

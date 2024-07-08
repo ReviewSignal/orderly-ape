@@ -78,9 +78,22 @@ func (r *TestRunReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	job := &loadtestingapi.Job{}
 	err := r.APIClient.Get(ctx, req.Name, job)
-	if err != nil {
+	if loadtesting.IgnoreNotFound(err) != nil {
 		l.Error(err, "Failed retrieving Job from API", "job", job)
 		return ctrl.Result{}, err
+	}
+
+	if loadtesting.IsNotFound(err) {
+		bgDelete := metav1.DeletePropagationBackground
+		err = r.Delete(ctx, &batchv1.Job{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      req.Name,
+				Namespace: req.Namespace,
+			},
+		}, &client.DeleteOptions{
+			PropagationPolicy: &bgDelete,
+		})
+		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 	l = l.WithValues("status", job.Status)
 

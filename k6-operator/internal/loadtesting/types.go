@@ -5,3 +5,7 @@ import (
 )
 
 type Client = client.Client
+type StatusError = client.StatusError
+
+var IsNotFound = client.IsNotFound
+var IgnoreNotFound = client.IgnoreNotFound
