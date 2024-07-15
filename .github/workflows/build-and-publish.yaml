@@ -1,0 +1,89 @@
+name: Build and Publish Docker Images
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - "v*"
+
+jobs:
+  build:
+    name: Build and Publish
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        component:
+          - webapp
+          - k6-operator
+
+    permissions:
+      contents: read
+      packages: write
+      attestations: write
+      id-token: write
+
+    env:
+      REGISTRY: ghcr.io
+      IMAGE_NAME: ${{ github.repository }}/${{ matrix.component }}
+      IMAGE_TAG: ${{ github.sha }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install git-semver
+        uses: giantswarm/install-binary-action@v3
+        with:
+          binary: "git-semver"
+          version: "6.9.0"
+          download_url: "https://github.com/mdomke/git-semver/releases/download/v${version}/git-semver_${version}_linux_amd64.tar.gz"
+          tarball_binary_path: "${binary}"
+          smoke_test: "${binary}"
+
+      - name: Determinte the semantic version
+        id: semver
+        run: echo "version=$(git-semver -no-meta)" >> "$GITHUB_OUTPUT"
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}/${{ matrix.component }}
+          tags: |
+            type=sha
+            type=raw,value=${{ steps.semver.outputs.version }}
+            type=ref,event=tag
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push ${{ matrix.component }}
+        uses: docker/build-push-action@v6
+        with:
+          context: ./${{ matrix.component }}
+          push: true
+          labels: ${{ steps.meta.outputs.labels }}
+          tags: ${{ steps.meta.outputs.tags }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Package and push Helm chart
+        run: |
+          mkdir -p _work/charts
+          cp -a ./deploy/charts/${{ matrix.component }} ./_work/charts/${{ matrix.component }}
+          sed -i 's/version: "0.0.1"/version: "${{ steps.semver.outputs.version }}"/g' ./_work/charts/${{ matrix.component }}/Chart.yaml
+          sed -i 's/appVersion: "0.0.1"/appVersion: "${{ steps.semver.outputs.version }}"/g' ./_work/charts/${{ matrix.component }}/Chart.yaml
+          helm registry login -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }} ghcr.io
+          helm package ./_work/charts/${{ matrix.component }} -d ./_work/charts
+          helm push ./_work/charts/*.tgz oci://ghcr.io/reviewsignal/orderly-ape/charts

@@ -5,7 +5,7 @@
 replicaCount: 1
 
 image:
-  repository: europe-west4-docker.pkg.dev/calins-playground/orderly-ape/webapp
+  repository: ghcr.io/reviewsignal/orderly-ape/webapp
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
   tag: ""
