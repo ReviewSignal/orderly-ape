@@ -60,3 +60,17 @@ Create the name of the service account to use
 {{- default "default" .Values.serviceAccount.name }}
 {{- end }}
 {{- end }}
+
+{{/*
+Create the name of the service account to use
+*/}}
+{{- define "orderly-ape.hasEnvVar" -}}
+{{- $name := (index . 0) -}}
+{{- $found := false -}}
+{{- with (index . 1) -}}
+{{- range $var := .Values.env }}
+{{- if eq $var.name $name }}{{ $found = true }}{{ end -}}
+{{- end }}
+{{- end }}
+{{- if $found }}{{ $name }}{{ end -}}
+{{- end }}

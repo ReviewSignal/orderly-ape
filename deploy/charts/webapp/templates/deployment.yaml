@@ -46,16 +46,22 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: status.podIP
+            {{- with .Values.env }}
+              {{- toYaml . | nindent 12 }}
+            {{- end }}
+            {{- if not ( include "orderly-ape.hasEnvVar" (list "ALLOWED_HOSTS" .) ) }}
             - name: ALLOWED_HOSTS
               value: localhost,127.0.0.1,$(MY_POD_IP){{ if .Values.ingress.enabled }}{{ range .Values.ingress.hosts }}{{ print "," .host }}{{ end }}{{ end }}
+            {{- end }}
             {{- if and .Values.ingress.enabled .Values.ingress.tls }}
+            {{- if not ( include "orderly-ape.hasEnvVar" (list "CSRF_TRUSTED_ORIGINS" .) ) }}
             - name: CSRF_TRUSTED_ORIGINS
               value: http://127.0.0.1{{ range .Values.ingress.hosts }}{{ print ",https://" .host }}{{ end }}
             {{- end }}
+            {{- end }}
+            {{- if not ( include "orderly-ape.hasEnvVar" (list "DATABASE_URL" .) ) }}
             - name: DATABASE_URL
-              value: sqlite:////data/db.sqlite3
-            {{- with .Values.env }}
-              {{- toYaml . | nindent 12 }}
+              value: "sqlite:////data/db.sqlite3"
             {{- end }}
           volumeMounts:
             - mountPath: /data
@@ -80,16 +86,22 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: status.podIP
+            {{- with .Values.env }}
+              {{- toYaml . | nindent 12 }}
+            {{- end }}
+            {{- if not ( include "orderly-ape.hasEnvVar" (list "ALLOWED_HOSTS" .) ) }}
             - name: ALLOWED_HOSTS
               value: localhost,127.0.0.1,$(MY_POD_IP){{ if .Values.ingress.enabled }}{{ range .Values.ingress.hosts }}{{ print "," .host }}{{ end }}{{ end }}
+            {{- end }}
             {{- if and .Values.ingress.enabled .Values.ingress.tls }}
+            {{- if not ( include "orderly-ape.hasEnvVar" (list "CSRF_TRUSTED_ORIGINS" .) ) }}
             - name: CSRF_TRUSTED_ORIGINS
               value: http://127.0.0.1{{ range .Values.ingress.hosts }}{{ print ",https://" .host }}{{ end }}
             {{- end }}
+            {{- end }}
+            {{- if not ( include "orderly-ape.hasEnvVar" (list "DATABASE_URL" .) ) }}
             - name: DATABASE_URL
-              value: sqlite:////data/db.sqlite3
-            {{- with .Values.env }}
-              {{- toYaml . | nindent 12 }}
+              value: "sqlite:////data/db.sqlite3"
             {{- end }}
           ports:
             - name: http
