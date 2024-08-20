@@ -13,7 +13,7 @@ django_settings_module = "webapp.settings"
 [project]
 name = "orderly-ape"
 dependencies = [
-  'django ~= 5.0',
+  'django ~= 5.1',
   'django-environ',
   'django-autocomplete-light ~= 3.11',
   'django-fsm-2 ~= 3.0',
