@@ -16,6 +16,7 @@ jobs:
       matrix:
         component:
           - webapp
+          - k6
           - k6-operator
 
     permissions:
@@ -73,12 +74,16 @@ jobs:
         with:
           context: ./${{ matrix.component }}
           push: true
+          build-args: |
+            VERSION=${{ steps.semver.outputs.version }}
+            K6_IMAGE=ghcr.io/reviewsignal/orderly-ape/k6:${{ steps.semver.outputs.version }}
           labels: ${{ steps.meta.outputs.labels }}
           tags: ${{ steps.meta.outputs.tags }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
       - name: Package and push Helm chart
+        if: ${{ hashFiles( format('deploy/charts/{0}/Chart.yaml', matrix.component) ) != '' }}
         run: |
           mkdir -p _work/charts
           cp -a ./deploy/charts/${{ matrix.component }} ./_work/charts/${{ matrix.component }}

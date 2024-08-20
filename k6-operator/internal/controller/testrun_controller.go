@@ -37,7 +37,6 @@ import (
 const telegrafConfigVersion = 1
 
 var (
-	zero64   int64 = 0
 	zero32   int32 = 0
 	falsePtr *bool = func(b bool) *bool { return &b }(false)
 	truePtr  *bool = func(b bool) *bool { return &b }(true)
@@ -47,7 +46,20 @@ var (
 	telegrafIntervalSeconds      = 5
 	telegrafFlushIntervalSeconds = 10
 	telegrafFlushJitterSeconds   = 5
+
+	K6Image       string
+	TelegrafImage string
 )
+
+func init() {
+	if K6Image == "" {
+		K6Image = "ghcr.io/reviewsignal/orderly-ape/k6:latest"
+	}
+
+	if TelegrafImage == "" {
+		TelegrafImage = "telegraf:1.31.1-alpine"
+	}
+}
 
 // TestRunReconciler reconciles a TestRun object
 type TestRunReconciler struct {
@@ -529,13 +541,16 @@ func (r *TestRunReconciler) syncJob(ctx context.Context, job *loadtestingapi.Job
 			env = corev1util.UpsertEnvVars(env, segmentsEnv...)
 		}
 
+		pullPolicy := corev1.PullIfNotPresent
+		if strings.HasSuffix(K6Image, ":latest") {
+			pullPolicy = corev1.PullAlways
+		}
+
 		pod.Spec.Containers = corev1util.UpsertContainer(pod.Spec.Containers,
 			corev1.Container{
-				Name: "k6",
-				// Image:           "loadimpact/k6",
-				Image: "europe-west4-docker.pkg.dev/calins-playground/k6-testing/k6-influxdb:v2",
-
-				ImagePullPolicy: corev1.PullIfNotPresent,
+				Name:            "k6",
+				Image:           K6Image,
+				ImagePullPolicy: pullPolicy,
 				WorkingDir:      "/scripts",
 				Command: []string{"/bin/sh", "-c",
 					fmt.Sprintf(`
@@ -582,7 +597,7 @@ func (r *TestRunReconciler) syncJob(ctx context.Context, job *loadtestingapi.Job
 		pod.Spec.Containers = corev1util.UpsertContainer(pod.Spec.Containers,
 			corev1.Container{
 				Name:            "telegraf",
-				Image:           "telegraf:1.31.1-alpine",
+				Image:           TelegrafImage,
 				ImagePullPolicy: corev1.PullIfNotPresent,
 				VolumeMounts: []corev1.VolumeMount{{
 					Name:      "telegraf-config",
@@ -647,7 +662,7 @@ func isPodFailed(pod *corev1.Pod) bool {
 
 func isPodStableReady(pod *corev1.Pod) bool {
 	now := time.Now()
-	stabilityPeriod := 30 * time.Second
+	stabilityPeriod := 5 * time.Second
 
 	for _, condition := range pod.Status.Conditions {
 		if condition.Type == corev1.PodReady && condition.LastTransitionTime.Add(stabilityPeriod).Before(now) {
