@@ -44,6 +44,7 @@ var (
 	userID   int64 = 65534
 	groupID  int64 = 65534
 
+	telegrafIntervalSeconds      = 5
 	telegrafFlushIntervalSeconds = 10
 	telegrafFlushJitterSeconds   = 5
 )
@@ -297,7 +298,7 @@ func (r *TestRunReconciler) syncTelegrafConfig(ctx context.Context, job *loadtes
 		StringData: map[string]string{
 			"telegraf.conf": fmt.Sprintf(`
 [agent]
-interval = "5s"
+interval = "%ds"
 flush_interval = "%ds"
 flush_jitter = "%ds"
 
@@ -334,6 +335,7 @@ flush_jitter = "%ds"
   ## Destination bucket to write into.
   bucket = "%s"
             `,
+				telegrafIntervalSeconds,
 				telegrafFlushIntervalSeconds,
 				telegrafFlushJitterSeconds,
 				job.TestRun.EnvVars["K6_INFLUXDB_ADDR"],
@@ -386,7 +388,7 @@ func (r *TestRunReconciler) syncJob(ctx context.Context, job *loadtestingapi.Job
 
 		pod := &corev1.PodTemplateSpec{}
 
-		gracePeriod := int64(telegrafFlushIntervalSeconds*2 + telegrafFlushJitterSeconds)
+		gracePeriod := max(10, int64(telegrafFlushIntervalSeconds*2+telegrafFlushJitterSeconds))
 
 		pod.Spec.RestartPolicy = corev1.RestartPolicyNever
 		pod.Spec.TerminationGracePeriodSeconds = &gracePeriod
