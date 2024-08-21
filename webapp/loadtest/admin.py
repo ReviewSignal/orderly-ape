@@ -183,7 +183,7 @@ class TestRunAdmin(admin.ModelAdmin):
         "target",
         "results_link",
         "script",
-        "live",
+        "completed",
         "status",
         "created_at",
         "start_test_at",
@@ -230,9 +230,21 @@ class TestRunAdmin(admin.ModelAdmin):
         results_link = f'[ <a href="{url}" target="_blank">Summary</a> ]'
         return mark_safe(results_link)
 
-    @admin.display(boolean=True, ordering="draft")
-    def live(self, obj: TestRun):
-        return not obj.draft
+    @admin.display(boolean=True)
+    def completed(self, obj: TestRun):
+        if obj.draft:
+            return None
+
+        status = obj.statuses
+        total = obj.statuses["total"]
+
+        if status.get(TestRunLocation.Status.FAILED, 0) > 0:
+            return False
+        elif status.get(TestRunLocation.Status.CANCELED, 0) > 0:
+            return False
+        elif status.get(TestRunLocation.Status.COMPLETED, 0) == total:
+            return True
+        return None
 
     @admin.action(
         description=f"Start selected {TestRun._meta.verbose_name_plural}",
@@ -274,7 +286,9 @@ class TestRunAdmin(admin.ModelAdmin):
         status = obj.statuses
         total = obj.statuses["total"]
 
-        if status.get(TestRunLocation.Status.FAILED, 0) > 0:
+        if obj.draft:
+            return _("Draft")
+        elif status.get(TestRunLocation.Status.FAILED, 0) > 0:
             return TestRunLocation.Status.FAILED.label
         elif status.get(TestRunLocation.Status.CANCELED, 0) > 0:
             return TestRunLocation.Status.CANCELED.label
