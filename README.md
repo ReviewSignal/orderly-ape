@@ -13,6 +13,12 @@ Orchestrate and run k6 load tests across multiple Kubernetes clusters. It consis
 -   [Contributing](#contributing)
 -   [License](#license)
 
+## Components
+
+-   [webapp](webapp) - Web application that allows configuring tests and coordinating between independent k6-operators in Kubernetes clusters.
+-   [k6-operator](k6-operator) - k6 operator that consumes the API, executes the load tests, and reports the state back to the web application.
+-   [k6](k6) - k6 container image that can be used to run k6 tests in a Kubernetes cluster.
+
 ## Installation
 
 _ToDo_
