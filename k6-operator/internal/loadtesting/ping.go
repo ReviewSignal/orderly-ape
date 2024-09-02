@@ -27,6 +27,7 @@ func (p *Pinger) Start(ctx context.Context) error {
 	t := time.NewTicker(30 * time.Second)
 	defer t.Stop()
 
+	p.Ping(ctx)
 	for {
 		select {
 		case <-ctx.Done():
@@ -38,6 +39,8 @@ func (p *Pinger) Start(ctx context.Context) error {
 }
 
 func (p *Pinger) Ping(ctx context.Context) {
-	log.Info("ping home")
-	p.client.Update(ctx, &api.Ping{})
+	err := p.client.Create(ctx, &api.Ping{})
+	if err != nil {
+		log.Error(err, "ping home")
+	}
 }

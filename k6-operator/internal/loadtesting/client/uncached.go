@@ -154,6 +154,38 @@ func (c *UncachedClient) Watch(obj runtime.Object) (<-chan runtime.Object, error
 	return ch, nil
 }
 
+func (c *UncachedClient) Create(ctx context.Context, obj runtime.Object) error {
+	_, err := conversion.EnforcePtr(obj)
+	if err != nil {
+		return err
+	}
+
+	endpoint, err := runtime.Schema.GetEndpointForList(obj)
+	if err != nil {
+		return err
+	}
+
+	realType := reflect.Indirect(reflect.ValueOf(obj))
+	resp, respErr := c.client.R().
+		SetResult(realType.Interface()).
+		SetBody(obj).
+		SetPathParams(map[string]string{"locationName": c.Region}).
+		SetContext(ctx).
+		Post(endpoint)
+	if respErr != nil {
+		return respErr
+	}
+
+	if resp.StatusCode() != 200 && resp.StatusCode() != 201 && resp.StatusCode() != 202 && resp.StatusCode() != 204 {
+		return NewStatusError(resp)
+	}
+
+	newObj := reflect.Indirect(reflect.ValueOf(resp.Result()))
+	outVal := reflect.ValueOf(obj)
+	reflect.Indirect(outVal).Set(newObj)
+	return nil
+}
+
 func (c *UncachedClient) Update(ctx context.Context, obj runtime.Object) error {
 	_, err := conversion.EnforcePtr(obj)
 	if err != nil {
