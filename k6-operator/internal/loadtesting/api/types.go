@@ -25,6 +25,24 @@ const (
 	STATUS_FAILED    string = "failed"
 )
 
+type Ping struct{}
+type PingList struct {
+	Items []Ping `json:"items"`
+}
+
+func (o *Ping) GetName() string {
+	panic("Should not be used, so not implemented!")
+}
+func (o *Ping) ToK8SResource() client.Object {
+	panic("Should not be used, so not implemented!")
+}
+func (o *PingList) GetItem() runtime.Object {
+	panic("Should not be used, so not implemented!")
+}
+func (o *PingList) SetItems(items []runtime.Object) {
+	panic("Should not be used, so not implemented!")
+}
+
 type TestRun struct {
 	CreatedAt      string            `json:"created_at"`
 	UpdatedAt      string            `json:"updated_at"`
@@ -169,5 +187,6 @@ func (o *NodeSelector) UnmarshalJSON(data []byte) error {
 }
 
 func init() {
+	runtime.Schema.Register(&Ping{}, &PingList{}, "workers/{locationName}/ping")
 	runtime.Schema.Register(&Job{}, &JobList{}, "workers/{locationName}/jobs")
 }

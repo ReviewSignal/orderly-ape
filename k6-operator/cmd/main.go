@@ -24,6 +24,7 @@ import (
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
+	"github.com/ReviewSignal/loadtesting/k6-operator/internal/loadtesting"
 	"github.com/ReviewSignal/loadtesting/k6-operator/internal/loadtesting/client"
 	"github.com/ReviewSignal/loadtesting/k6-operator/internal/options"
 
@@ -202,6 +203,17 @@ func main() {
 		os.Exit(1)
 	}
 	//+kubebuilder:scaffold:builder
+
+	pinger, err := loadtesting.NewPinger(apiClient)
+	if err != nil {
+		setupLog.Error(err, "unable to set up pinger")
+		os.Exit(1)
+	}
+	if err = mgr.Add(pinger); err != nil {
+		setupLog.Error(err, "unable to set up pinger")
+		os.Exit(1)
+
+	}
 
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
 		setupLog.Error(err, "unable to set up health check")

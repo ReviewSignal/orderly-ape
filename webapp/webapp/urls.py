@@ -22,7 +22,7 @@ from django.http import HttpResponse
 from django.urls import include, path
 from rest_framework import routers
 
-from loadtest.views import WorkersJobsViewSet
+from loadtest.views import PingViewSet, WorkersJobsViewSet
 
 
 def ok(_):
@@ -31,6 +31,7 @@ def ok(_):
 
 router = routers.DefaultRouter(trailing_slash=False)
 router.register("workers/(?P<location>[a-z0-9-]+)/jobs", WorkersJobsViewSet)
+router.register("workers/(?P<location>[a-z0-9-]+)/ping", PingViewSet, basename="ping")
 
 urlpatterns = [
     path("", ok, name="ok"),

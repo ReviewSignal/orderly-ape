@@ -48,6 +48,18 @@ class BaseNamedModel(BaseBareModel, BaseTimestampedModel):
 
 class TestLocation(BaseNamedModel):
     display_name = models.CharField(max_length=200)
+    last_ping = models.DateTimeField(
+        verbose_name=_("Location last checkin"), editable=False, null=True
+    )
+
+    def ping(self):
+        self.last_ping = timezone.now()
+
+    def staus(self):
+        if self.last_ping is None:
+            return None
+
+        return self.last_ping > timezone.now() - timezone.timedelta(minutes=5)
 
     class Meta:  # pyright: ignore [reportIncompatibleVariableOverride]
         verbose_name = _("Test Location")

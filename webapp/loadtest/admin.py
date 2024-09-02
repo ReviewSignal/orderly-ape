@@ -376,8 +376,12 @@ class TestRunAdmin(admin.ModelAdmin):
 
 @admin.register(TestLocation)
 class TestLocationAdmin(admin.ModelAdmin):
-    list_display = ["name", "display_name"]
+    list_display = ["name", "display_name", "status", "last_ping"]
     prepopulated_fields = {"name": ["display_name"]}
+
+    @admin.display(boolean=True)
+    def status(self, obj: TestLocation):
+        return obj.staus()
 
 
 class TestOutputConfigForm(ModelForm):
