@@ -45,6 +45,14 @@ type TestRun struct {
 	DedicatedNodes bool              `json:"dedicated_nodes"`
 }
 
+type TestOutputConfig struct {
+	InfluxURL          string `json:"influxdb_url"`
+	InfluxToken        string `json:"influxdb_token"`
+	InfluxOrganization string `json:"influxdb_org"`
+	InfluxBucket       string `json:"influxdb_bucket"`
+	TLSSkipVerify      bool   `json:"insecure_skip_verify"`
+}
+
 type Segment struct {
 	ID      string `json:"segment_id"`
 	Segment string `json:"segment"`
@@ -53,15 +61,16 @@ type Segment struct {
 // Job is a struct that represents a job to be executed by the worker.
 // It is exposed by the web application trough the workers API.
 type Job struct {
-	Name              string    `json:"name"`
-	URL               string    `json:"url"`
-	Location          string    `json:"location"`
-	Status            string    `json:"status"`
-	StatusDescription string    `json:"status_description"`
-	Workers           int32     `json:"num_workers"`
-	OnlineWorkers     int32     `json:"online_workers"`
-	AssignedSegments  []Segment `json:"assigned_segments"`
-	TestRun           TestRun   `json:"test_run"`
+	Name              string           `json:"name"`
+	URL               string           `json:"url"`
+	Location          string           `json:"location"`
+	Status            string           `json:"status"`
+	StatusDescription string           `json:"status_description"`
+	Workers           int32            `json:"num_workers"`
+	OnlineWorkers     int32            `json:"online_workers"`
+	AssignedSegments  []Segment        `json:"assigned_segments"`
+	TestRun           TestRun          `json:"test_run"`
+	OutputConfig      TestOutputConfig `json:"output_config"`
 }
 
 type JobList struct {

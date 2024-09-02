@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from rest_framework.reverse import reverse
 
-from .models import TestRun, TestRunLocation
+from .models import TestOutputConfig, TestRun, TestRunLocation
 
 
 class TestRunSerializer(serializers.ModelSerializer):
@@ -26,10 +26,19 @@ class TestRunSerializer(serializers.ModelSerializer):
         exclude = ["id", "name"]
 
 
+class TestOutputConfigSerializer(serializers.ModelSerializer):
+    class Meta:  # pyright: ignore [reportIncompatibleVariableOverride]
+        model = TestOutputConfig
+        exclude = ["id", "name", "created_at", "updated_at"]
+
+
 class JobSerializer(serializers.HyperlinkedModelSerializer):
     name = serializers.CharField(source="test_run.name", read_only=True)
     url = serializers.SerializerMethodField()
     test_run = TestRunSerializer(read_only=True)
+    output_config = TestOutputConfigSerializer(
+        read_only=True, source="test_run.test_output"
+    )
     assigned_segments = serializers.ListField(read_only=True)
 
     def get_url(self, obj):

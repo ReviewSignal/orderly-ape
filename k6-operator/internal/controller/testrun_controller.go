@@ -346,14 +346,18 @@ flush_jitter = "%ds"
 
   ## Destination bucket to write into.
   bucket = "%s"
+
+  ## Use TLS but skip chain & host verification
+  insecure_skip_verify = %t
             `,
 				telegrafIntervalSeconds,
 				telegrafFlushIntervalSeconds,
 				telegrafFlushJitterSeconds,
-				job.TestRun.EnvVars["K6_INFLUXDB_ADDR"],
-				job.TestRun.EnvVars["K6_INFLUXDB_TOKEN"],
-				job.TestRun.EnvVars["K6_INFLUXDB_ORGANIZATION"],
-				job.TestRun.EnvVars["K6_INFLUXDB_BUCKET"]),
+				job.OutputConfig.InfluxURL,
+				job.OutputConfig.InfluxToken,
+				job.OutputConfig.InfluxOrganization,
+				job.OutputConfig.InfluxBucket,
+				job.OutputConfig.TLSSkipVerify),
 		},
 	}
 
@@ -527,15 +531,25 @@ func (r *TestRunReconciler) syncJob(ctx context.Context, job *loadtestingapi.Job
 
 		env := []corev1.EnvVar{}
 		for name, value := range job.TestRun.EnvVars {
-			env = append(env, corev1.EnvVar{
+			env = corev1util.UpsertEnvVars(env, corev1.EnvVar{
 				Name:  name,
 				Value: value,
 			})
 		}
-		env = append(env, corev1.EnvVar{
-			Name:  "TARGET",
-			Value: job.TestRun.Target,
-		})
+		env = corev1util.UpsertEnvVars(env,
+			corev1.EnvVar{
+				Name:  "TARGET",
+				Value: job.TestRun.Target,
+			},
+			corev1.EnvVar{
+				Name:  "K6_OUT",
+				Value: "output-statsd",
+			},
+			corev1.EnvVar{
+				Name:  "K6_STATSD_ENABLE_TAGS",
+				Value: "true",
+			},
+		)
 
 		if segmentsEnv != nil {
 			env = corev1util.UpsertEnvVars(env, segmentsEnv...)

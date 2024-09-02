@@ -18,6 +18,7 @@ from django.utils.translation import gettext_lazy as _
 from .models import (
     DEFAULT_REPO,
     TestLocation,
+    TestOutputConfig,
     TestRun,
     TestRunEnvVar,
     TestRunLabel,
@@ -203,6 +204,7 @@ class TestRunAdmin(admin.ModelAdmin):
                 "source_script",
                 "source_ref",
                 "target",
+                "test_output",
                 "resources_cpu",
                 "resources_memory",
                 "dedicated_nodes",
@@ -376,3 +378,20 @@ class TestRunAdmin(admin.ModelAdmin):
 class TestLocationAdmin(admin.ModelAdmin):
     list_display = ["name", "display_name"]
     prepopulated_fields = {"name": ["display_name"]}
+
+
+class TestOutputConfigForm(ModelForm):
+    class Meta:  # pyright: ignore reportIncompatibleVariableOverride
+        model = TestOutputConfig
+        fields = "__all__"
+        widgets = {
+            "influxdb_token": forms.PasswordInput(
+                attrs={"autocomplete": "off", "class": "vTextField"}
+            ),
+        }
+
+
+@admin.register(TestOutputConfig)
+class TestOutputConfigAdmin(admin.ModelAdmin):
+    form = TestOutputConfigForm
+    list_display = ["name", "influxdb_url", "influxdb_org", "influxdb_bucket"]

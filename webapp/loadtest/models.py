@@ -55,6 +55,31 @@ class TestLocation(BaseNamedModel):
         db_table = "loadtest_location"
 
 
+class TestOutputConfig(BaseNamedModel):
+    @classmethod
+    def default(cls):
+        return cls.objects.filter(name="default").first() or cls.objects.first()
+
+    influxdb_url = models.URLField(verbose_name=_("InfluxDB Server URL"))
+    influxdb_token = models.CharField(max_length=200, verbose_name=_("InfluxDB Token"))
+    influxdb_org = models.CharField(
+        max_length=200, default="default", verbose_name=_("InfluxDB Organization")
+    )
+    influxdb_bucket = models.CharField(
+        max_length=200, default="default", verbose_name=_("InfluxDB Bucket")
+    )
+    insecure_skip_verify = models.BooleanField(
+        default=False,
+        verbose_name=_("Skip TLS verification"),
+        help_text=_("Use TLS but skip chain & host verification"),
+    )
+
+    class Meta:  # pyright: ignore [reportIncompatibleVariableOverride]
+        verbose_name = _("Test Output")
+        verbose_name_plural = _("Test Outputs")
+        db_table = "loadtest_output"
+
+
 class TestRun(BaseNamedModel):
     locations: 'Manager["TestRunLocation"]'
     env_vars: 'Manager["TestRunEnvVar"]'
@@ -65,6 +90,18 @@ class TestRun(BaseNamedModel):
             "URL to test. It is passed to the test script as "
             "<code>TARGET</code> environment variable."
         )
+    )
+
+    test_output = models.ForeignKey(
+        TestOutputConfig,
+        null=False,
+        default=TestOutputConfig.default,
+        to_field="name",
+        on_delete=models.PROTECT,
+        related_name="+",
+        db_column="test_output",
+        verbose_name=_("Test Output"),
+        help_text=_("Influxdb configuration for storing test results."),
     )
 
     source_repo = models.CharField(
