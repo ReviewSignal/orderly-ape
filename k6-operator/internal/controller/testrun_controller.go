@@ -43,7 +43,7 @@ var (
 	userID   int64 = 65534
 	groupID  int64 = 65534
 
-	telegrafIntervalSeconds      = 5
+	telegrafIntervalSeconds      = 10
 	telegrafFlushIntervalSeconds = 10
 	telegrafFlushJitterSeconds   = 5
 
@@ -334,6 +334,13 @@ flush_jitter = "%ds"
   ## Enabling this would ensure that both counters and guages are both emitted
   ## as floats.
   float_counters = true
+
+  ## Emit timings metric_<name>_count field as float, the same as all other
+  ## histogram fields
+  float_timings = true
+
+  ## Emit sets as float
+  float_sets = true
 
 [[outputs.influxdb_v2]]
   ## The URLs of the InfluxDB cluster nodes.
@@ -629,7 +636,7 @@ func (r *TestRunReconciler) syncJob(ctx context.Context, job *loadtestingapi.Job
 								fmt.Sprintf(`
 									echo "Allow telegraf to flush it's metrics" >&2
 									sleep %d
-								`, telegrafFlushIntervalSeconds),
+								`, 2*telegrafFlushIntervalSeconds),
 							},
 						},
 					},
