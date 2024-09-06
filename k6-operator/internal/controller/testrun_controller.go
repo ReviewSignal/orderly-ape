@@ -330,6 +330,11 @@ flush_jitter = "%ds"
   ## http://docs.datadoghq.com/guides/dogstatsd/
   datadog_extensions = true
 
+  ## Convert all numeric counters to float
+  ## Enabling this would ensure that both counters and guages are both emitted
+  ## as floats.
+  float_counters = true
+
 [[outputs.influxdb_v2]]
   ## The URLs of the InfluxDB cluster nodes.
   ##
