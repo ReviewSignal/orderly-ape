@@ -15,8 +15,9 @@ jobs:
     strategy:
       matrix:
         component:
-          - webapp
+          - telegraf
           - k6
+          - webapp
           - k6-operator
 
     permissions:
@@ -77,6 +78,7 @@ jobs:
           build-args: |
             VERSION=${{ steps.semver.outputs.version }}
             K6_IMAGE=ghcr.io/reviewsignal/orderly-ape/k6:${{ steps.semver.outputs.version }}
+            TELEGRAF_IMAGE=ghcr.io/reviewsignal/orderly-ape/telegraf:${{ steps.semver.outputs.version }}
           labels: ${{ steps.meta.outputs.labels }}
           tags: ${{ steps.meta.outputs.tags }}
           cache-from: type=gha
