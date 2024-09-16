@@ -138,8 +138,12 @@ class TestRun(BaseNamedModel):
         help_text=_("Test script file, relative to the repository root."),
     )
 
-    start_test_at = models.DateTimeField(
-        null=True, blank=True, verbose_name=_("Start test at"), editable=False
+    started_at = models.DateTimeField(
+        null=True, blank=True, verbose_name=_("Test started time"), editable=False
+    )
+
+    completed_at = models.DateTimeField(
+        null=True, blank=True, verbose_name=_("Test completed time"), editable=False
     )
 
     resources_cpu = models.CharField(
@@ -211,15 +215,31 @@ class TestRun(BaseNamedModel):
     @property
     def grafana_url(self) -> str:
         date_from = "now-1h"
-        date_to = "not"
+        date_to = "now"
 
-        if self.start_test_at:
-            _date_from = (self.start_test_at + timezone.timedelta(minutes=-5)).replace(
+        if self.started_at:
+            _date_from = (self.started_at + timezone.timedelta(minutes=-5)).replace(
                 second=0, microsecond=0
             )
             date_from = int(_date_from.timestamp() * 1000)
-            date_to = int((_date_from + timezone.timedelta(hours=1)).timestamp() * 1000)
-        url = f"{settings.GRAFANA_DASHBOARD_URL}&var-testid={self.name}&from={date_from}&to={date_to}"
+
+            if not self.completed_at:
+                date_to = int(
+                    (_date_from + timezone.timedelta(hours=1)).timestamp() * 1000
+                )
+
+        if self.completed_at:
+            _date_to = (self.completed_at + timezone.timedelta(minutes=5)).replace(
+                second=0, microsecond=0
+            )
+            date_to = int(_date_to.timestamp() * 1000)
+
+            if not self.started_at:
+                date_from = int(
+                    (_date_to + timezone.timedelta(hours=-1)).timestamp() * 1000
+                )
+
+        url = f"{settings.GRAFANA_DASHBOARD_URL}&var-testid={self.name}&from={date_from}&to={date_to}"  # noqa: E501
         return url
 
     class Meta:  # pyright: ignore [reportIncompatibleVariableOverride]
@@ -381,7 +401,7 @@ class TestRunLocation(BaseBareModel):
             self.test_run.locations.exclude(status=self.Status.READY).count() == 0
         )
         if all_ready:
-            self.test_run.start_test_at = Now()
+            self.test_run.started_at = Now()
             self.test_run.save()
 
     @transition(field=status, source=Status.READY, target=Status.RUNNING)
@@ -426,7 +446,7 @@ def duplicate_test_run(obj: TestRun):
     obj.pk = None
     obj.name = None
     obj.draft = True
-    obj.start_test_at = None
+    obj.started_at = None
     obj.save()
 
     for location in locations:
