@@ -55,7 +55,7 @@ type TestRun struct {
 	Segments       []string          `json:"segments"`
 	Completed      bool              `json:"completed"`
 	Ready          bool              `json:"ready"`
-	StartTestAt    *time.Time        `json:"start_test_at"`
+	StartTestAt    *time.Time        `json:"started_at"`
 	ResourceCPU    resource.Quantity `json:"resources_cpu"`
 	ResourceMemory resource.Quantity `json:"resources_memory"`
 	NodeSelector   NodeSelector      `json:"node_selector"`

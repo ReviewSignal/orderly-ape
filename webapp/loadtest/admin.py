@@ -187,7 +187,8 @@ class TestRunAdmin(admin.ModelAdmin):
         "completed",
         "status",
         "created_at",
-        "start_test_at",
+        "started_at",
+        "completed_at",
     ]
     date_hierarchy = "created_at"
     search_fields = ["target", "name", "source_repo", "source_script"]
