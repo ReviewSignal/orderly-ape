@@ -6,9 +6,9 @@ asgiref==3.8.1 \
     # via
     #   -c requirements.txt
     #   django
-django==5.1 \
-    --hash=sha256:848a5980e8efb76eea70872fb0e4bc5e371619c70fffbe48e3e1b50b2c09455d \
-    --hash=sha256:d3b811bf5371a26def053d7ee42a9df1267ef7622323fe70a601936725aa4557
+django==5.1.2 \
+    --hash=sha256:bd7376f90c99f96b643722eee676498706c9fd7dc759f55ebfaf2c08ebcdf4f0 \
+    --hash=sha256:f11aa87ad8d5617171e3f77e1d5d16f004b79a2cf5d2e1d2b97a6a1f8e9ba5ed
     # via
     #   -c requirements.txt
     #   orderly-ape (pyproject.toml)
@@ -42,16 +42,15 @@ gunicorn==23.0.0 \
     --hash=sha256:ec400d38950de4dfd418cff8328b2c8faed0edb0d517d3394e457c317908ca4d \
     --hash=sha256:f014447a0101dc57e294f6c18ca6b40227a4c90e9bdb586042628030cba004ec
     # via orderly-ape (pyproject.toml)
-mysqlclient==2.2.4 \
-    --hash=sha256:329e4eec086a2336fe3541f1ce095d87a6f169d1cc8ba7b04ac68bcb234c9711 \
-    --hash=sha256:33bc9fb3464e7d7c10b1eaf7336c5ff8f2a3d3b88bab432116ad2490beb3bf41 \
-    --hash=sha256:3c318755e06df599338dad7625f884b8a71fcf322a9939ef78c9b3db93e1de7a \
-    --hash=sha256:4e80dcad884dd6e14949ac6daf769123223a52a6805345608bf49cdaf7bc8b3a \
-    --hash=sha256:9d3310295cb682232cadc28abd172f406c718b9ada41d2371259098ae37779d3 \
-    --hash=sha256:9d4c015480c4a6b2b1602eccd9846103fc70606244788d04aa14b31c4bd1f0e2 \
-    --hash=sha256:ac44777eab0a66c14cb0d38965572f762e193ec2e5c0723bcd11319cc5b693c5 \
-    --hash=sha256:d43987bb9626096a302ca6ddcdd81feaeca65ced1d5fe892a6a66b808326aa54 \
-    --hash=sha256:e1ebe3f41d152d7cb7c265349fdb7f1eca86ccb0ca24a90036cde48e00ceb2ab
+mysqlclient==2.2.5 \
+    --hash=sha256:1d2e2ca0fe8405d8d6464edd01bf059951279e4bc27284d39341bd4737b2bc64 \
+    --hash=sha256:3f9625bea2b9bcde0ace76b32708762d44597491092c819fd1bff5b4e27f709b \
+    --hash=sha256:8012c633aab8c91ea8172ac479807135b171501b9cad1a7cd9b58c4dc8dcdab5 \
+    --hash=sha256:add8643c32f738014d252d2bdebb478623b04802e8396d5903905db36474d3ff \
+    --hash=sha256:aee14f1872114865679fcb09aac3772de4595fa7dcf2f83a4c7afee15e508854 \
+    --hash=sha256:b54511648c1455b43ac28f8b4c1f732c5b0c343e87f7a3bd6fc9f9fe0f91934e \
+    --hash=sha256:b78438314199504c64f69e1e3521f2c9b419f19fcd85158b44c997b64409a6af \
+    --hash=sha256:e871ede4261d0d42b8ed20a2459db411c7deafedd8e77b7e4ba760be4a6a752b
     # via orderly-ape (pyproject.toml)
 packaging==24.1 \
     --hash=sha256:026ed72c8ed3fcce5bf8950572258698927fd1dbda10a5e981cdf0ac37f4f002 \
@@ -63,9 +62,9 @@ sqlparse==0.5.1 \
     # via
     #   -c requirements.txt
     #   django
-whitenoise==6.7.0 \
-    --hash=sha256:58c7a6cd811e275a6c91af22e96e87da0b1109e9a53bb7464116ef4c963bf636 \
-    --hash=sha256:a1ae85e01fdc9815d12fa33f17765bc132ed2c54fa76daf9e39e879dd93566f6
+whitenoise==6.8.2 \
+    --hash=sha256:486bd7267a375fa9650b136daaec156ac572971acc8bf99add90817a530dd1d4 \
+    --hash=sha256:df12dce147a043d1956d81d288c6f0044147c6d2ab9726e5772ac50fb45d2280
     # via
     #   -c requirements.txt
     #   orderly-ape (pyproject.toml)
