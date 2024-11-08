@@ -224,9 +224,16 @@ class TestRun(BaseNamedModel):
             date_from = int(_date_from.timestamp() * 1000)
 
             if not self.completed_at:
-                date_to = int(
-                    (_date_from + timezone.timedelta(hours=1)).timestamp() * 1000
-                )
+                duration = timezone.timedelta(hours=1)
+
+                if self.job_deadline:
+                    try:
+                        deadline = durationpy.from_str(self.job_deadline)
+                        duration = deadline + timezone.timedelta(minutes=5)
+                    except durationpy.DurationError:
+                        pass
+
+                date_to = int((_date_from + duration).timestamp() * 1000)
 
         if self.completed_at:
             _date_to = (self.completed_at + timezone.timedelta(minutes=5)).replace(
