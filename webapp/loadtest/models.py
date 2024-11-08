@@ -1,5 +1,6 @@
 from typing import TYPE_CHECKING
 
+import durationpy
 from django.conf import settings
 from django.db import models, transaction
 from django.db.models import Sum
@@ -10,6 +11,8 @@ from django.utils.functional import cached_property
 from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
 from django_fsm import FSMField, transition
+
+from .validators import validate_duration
 
 if TYPE_CHECKING:
     from django.db.models import Manager
@@ -181,8 +184,10 @@ class TestRun(BaseNamedModel):
         verbose_name=_("Job deadline"),
         help_text=_(
             "Time to allow workers to run. This should take into test fetching docker "
-            "images, synctonization time, and actual test run time."
+            "images, synctonization time, and actual test run time. "
+            "Use Golang duration format (https://pkg.go.dev/time#Duration)."
         ),
+        validators=[validate_duration],
     )
 
     draft = models.BooleanField(default=True, verbose_name=_("Draft"))
