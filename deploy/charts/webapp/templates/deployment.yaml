@@ -40,7 +40,45 @@ spec:
             {{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          args: ["./manage.py", "migrate"]
+          command:
+            - "sh"
+            - "-c"
+            - |
+              ./manage.py migrate --noinput
+
+              cat <<EOF | python ./manage.py shell
+              import environ
+
+              # Create the superuser
+              from django.contrib.auth import get_user_model
+              env = environ.FileAwareEnv()
+              User = get_user_model()
+              admin_user = env.str("ADMIN_USER", default="")
+              admin_password = env.str("ADMIN_PASSWORD", default="")
+              User.objects.filter(username=admin_user).exists() or \
+                  User.objects.create_superuser(
+                    admin_user,
+                    f"{admin_user}@example.com",
+                    admin_password,
+                  )
+
+              # Setup default test output
+              from loatest.models import TestOutput
+
+              influxdb_url = env.str("INFLUXDB_URL", default="http://localhost:8086")
+              influxdb_token = env.str("INFLUXDB_TOKEN", default="")
+              influxdb_org = env.str("INFLUXDB_ORG", default="default")
+              influxdb_bucket = env.str("INFLUXDB_BUCKET", default="default")
+              influxdb_tls_skip_verify = env.bool("INFLUXDB_TLS_SKIP_VERIFY", default=False)
+
+              if influxdb_token and TestOutput.objects.count() == 0:
+                  output = TestOutput.objects.get_or_create(name="default")
+                  output.influxdb_url=influxdb_url
+                  output.influxdb_token=influxdb_token
+                  output.influxdb_org=influxdb_org
+                  output.influxdb_bucket=influxdb_bucket
+                  output.insecure_skip_verify=influxdb_tls_skip_verify
+              EOF
           env:
             - name: MY_POD_IP
               valueFrom:
@@ -48,6 +86,20 @@ spec:
                   fieldPath: status.podIP
             {{- with .Values.env }}
               {{- toYaml . | nindent 12 }}
+            {{- end }}
+            {{- if not ( include "orderly-ape.hasEnvVar" (list "ADMIN_PASSWORD" .) ) }}
+            - name: ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "orderly-ape.fullname" . }}
+                  key: admin-password
+            {{- end }}
+            {{- if not ( include "orderly-ape.hasEnvVar" (list "ADMIN_USER" .) ) }}
+            - name: ADMIN_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "orderly-ape.fullname" . }}
+                  key: admin-user
             {{- end }}
             {{- if not ( include "orderly-ape.hasEnvVar" (list "ALLOWED_HOSTS" .) ) }}
             - name: ALLOWED_HOSTS

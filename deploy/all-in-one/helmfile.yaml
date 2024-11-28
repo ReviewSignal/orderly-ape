@@ -1,0 +1,265 @@
+environments:
+  default:
+    values:
+      - values.yaml
+---
+repositories:
+  - name: ingress-nginx
+    url: https://kubernetes.github.io/ingress-nginx
+  - name: jetstack
+    url: https://charts.jetstack.io
+  - name: influxdata
+    url: https://helm.influxdata.com/
+  - name: grafana
+    url: https://grafana.github.io/helm-charts
+
+releases:
+  - name: cert-manager
+    namespace: orderly-ape
+    chart: jetstack/cert-manager
+    version: v1.16.2
+    values:
+      - crds:
+          enabled: true
+        global:
+          leaderElection:
+            namespace: orderly-ape
+
+  - name: ingress-nginx
+    namespace: orderly-ape
+    chart: ingress-nginx/ingress-nginx
+    values:
+      - controller:
+          ingressClass: "orderly-ape"
+          ingressClassResource:
+            name: "orderly-ape"
+          watchNamespace: "orderly-ape"
+
+  - name: influxdb
+    namespace: orderly-ape
+    chart: influxdata/influxdb2
+    needs:
+      - cert-manager
+      - ingress-nginx
+    values:
+      - image:
+          tag: 2.7.10-alpine
+      - nameOverride: influxdb
+      - adminUser:
+          organization: default
+      - persistence:
+          enabled: true
+          size: {{ .Values | get "influxdb.diskSize" "50Gi" | quote }}
+      - ingress:
+          enabled: true
+          className: orderly-ape
+          annotations:
+            cert-manager.io/issuer: orderly-ape
+          hostname: {{ .Values.influxdb.host }}
+          tls: true
+          secretName: influxdb-tls
+      - pdb:
+          create: false
+      - resources:
+          requests:
+            memory: 2G
+            cpu: 1
+          limits:
+            memory: 2G
+
+  - name: grafana
+    namespace: orderly-ape
+    chart: grafana/grafana
+    needs:
+      - cert-manager
+      - ingress-nginx
+    values:
+      - ingress:
+          enabled: true
+          ingressClassName: orderly-ape
+          annotations:
+            cert-manager.io/issuer: orderly-ape
+          hosts:
+            - {{ .Values.grafana.host }}
+          tls:
+            - secretName: grafana-tls
+              hosts:
+                - {{ .Values.grafana.host }}
+      - persistence:
+          enabled: true
+          size: {{ .Values | get "grafana.diskSize" "10Gi" | quote }}
+      - extraSecretMounts:
+        - name: influxdb
+          mountPath: /run/secrets/influxdb
+          secretName: influxdb-auth
+          readOnly: true
+      - datasources:
+          datasources.yaml:
+            apiVersion: 1
+            datasources:
+              - name: InfluxDB
+                type: influxdb
+                access: proxy
+                url: http://influxdb
+                jsonData:
+                  user: admin
+                  version: Flux
+                  organization: default
+                  defaultBucket: default
+                secureJsonData:
+                  token: $__file{/run/secrets/influxdb/admin-token}
+      - dashboardProviders:
+          dashboardproviders.yaml:
+            apiVersion: 1
+            providers:
+              - name: "default"
+                orgId: 1
+                folder: ""
+                type: file
+                disableDeletion: false
+                editable: true
+                options:
+                  path: /var/lib/grafana/dashboards/default
+      - dashboards:
+          default:
+            test-results:
+              url: https://raw.githubusercontent.com/ReviewSignal/orderly-ape/main/grafana/test-results.json
+              datasource:
+                - name: DS_INFLUXDB
+                  value: InfluxDB
+
+  - name: orderly-ape-database
+    namespace: orderly-ape
+    chart: ./k8s-resource
+    values:
+      - resources:
+          - apiVersion: databases.digitalocean.com/v1alpha1
+            kind: DatabaseClusterReference
+            metadata:
+              name: orderly-ape-db
+              namespace: orderly-ape
+            spec:
+              uuid: {{ .Values.digitalocean.mysql.uuid | quote }}
+          - apiVersion: databases.digitalocean.com/v1alpha1
+            kind: DatabaseUser
+            metadata:
+              name: orderly-ape-db
+              namespace: orderly-ape
+            spec:
+              databaseCluster:
+                apiGroup: databases.digitalocean.com
+                kind: DatabaseClusterReference
+                name: orderly-ape-db
+              username: orderly-ape
+          - apiVersion: batch/v1
+            kind: Job
+            metadata:
+              name: orderly-ape-init-db
+              namespace: orderly-ape
+              annotations:
+                "helm.sh/hook": post-install,post-upgrade
+            spec:
+              template:
+                spec:
+                  restartPolicy: Never
+                  containers:
+                  - name: mysql-client
+                    image: alpine/mysql
+                    command:
+                      - "sh"
+                      - "-c"
+                      - mysql -h $DB_HOST -P $DB_PORT -u $DB_USERNAME -p$DB_PASSWORD -e 'CREATE DATABASE IF NOT EXISTS `orderly-ape`;'
+                    env:
+                    - name: DB_HOST
+                      valueFrom:
+                        configMapKeyRef:
+                          name: orderly-ape-db-private-connection
+                          key: host
+                    - name: DB_PORT
+                      valueFrom:
+                        configMapKeyRef:
+                          name: orderly-ape-db-private-connection
+                          key: port
+                    - name: DB_USERNAME
+                      valueFrom:
+                        secretKeyRef:
+                          name: orderly-ape-db-credentials
+                          key: username
+                    - name: DB_PASSWORD
+                      valueFrom:
+                        secretKeyRef:
+                          name: orderly-ape-db-credentials
+                          key: password
+  - name: orderly-ape
+    namespace: orderly-ape
+    chart: ../charts/webapp
+    # chart: oci://ghcr.io/reviewsignal/orderly-ape/charts/orderly-ape
+    # version: "{{ .Values.orderlyape.version }}"
+    needs:
+      - cert-manager
+      - ingress-nginx
+      - influxdb
+      - grafana
+      - orderly-ape-database
+    values:
+    - image:
+        tag: "{{ .Values.orderlyape.version }}"
+    - initScript:
+        ./manage.py migrate --noinput
+
+        cat <<EOF | python ./manage.py shell
+        import environ
+        from django.contrib.auth import get_user_model
+
+        env = environ.FileAwareEnv()
+        User = get_user_model()
+
+        # Setup default test location
+        from loatest.models import TestLocation
+
+        if TestLocation.objects.count() == 0:
+            location = TestLocation.objects.get_or_create(name="default", display_name="Default Location")
+            location_user = User.objects.create_user(
+              username="worker-default",
+              password=env.str("DEFAULT_WORKER_PASSWORD", "")
+            )
+        EOF
+    - ingress:
+        enabled: true
+        className: orderly-ape
+        annotations:
+          cert-manager.io/cluster-issuer: orderly-ape
+        hosts:
+        - host: {{ .Values.orderlyape.host }}
+          paths:
+          - path: /
+            pathType: Prefix
+        tls:
+        - secretName: orderly-ape-tls
+          hosts:
+            - {{ .Values.orderlyape.host }}
+    - env:
+      - name: DATABASE_HOST
+        valueFrom:
+          configMapKeyRef:
+            name: orderly-ape-db-private-connection
+            key: host
+      - name: DATABASE_PORT
+        valueFrom:
+          configMapKeyRef:
+            name: orderly-ape-db-private-connection
+            key: port
+      - name: DATABASE_USER
+        valueFrom:
+          secretKeyRef:
+            name: orderly-ape-db-credentials
+            key: username
+      - name: DATABASE_PASSWORD
+        valueFrom:
+          secretKeyRef:
+            name: orderly-ape-db-credentials
+            key: password
+      - name: DATABASE_URL
+        value: mysql://$(DATABASE_USER):$(DATABASE_PASSWORD)@$(DATABASE_HOST):$(DATABASE_PORT)/orderly-ape
+      - name: GRAFANA_DASHBOARD_URL
+        value: https://{{ .Values.grafana.host }}/d/bdqz4a3k8j08wa?orgId=1

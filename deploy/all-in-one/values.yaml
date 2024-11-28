@@ -1,0 +1,13 @@
+orderlyape:
+  host: ape.example.com
+  version: 0.0.1-dev.57
+
+digitalocean:
+  mysql:
+    uuid: e80fa40f-6d99-4781-9c89-11aeedadd307
+
+grafana:
+  host: grafana.example.com
+
+influxdb:
+  host: influxdb.example.com

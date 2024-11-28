@@ -1,0 +1,10 @@
+{{ $labels := include "k8s-resource.labels" . | fromYaml }}
+{{- range $resource := .Values.resources }}
+---
+{{- $metadata := get $resource "metadata" | default dict }}
+{{- $resourceLabels := get $metadata "labels" | default dict }}
+{{- $mergedLabels := merge $labels $resourceLabels }}
+{{- $_ := set $metadata "labels" $mergedLabels }}
+{{- $_ := set $resource "metadata" $metadata }}
+{{ $resource | toYaml }}
+{{- end }}

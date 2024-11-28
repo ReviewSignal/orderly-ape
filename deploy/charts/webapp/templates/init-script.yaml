@@ -1,0 +1,114 @@
+{{- if .Values.initScript }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "orderly-ape.fullname" . }}-init
+  labels:
+    {{- include "orderly-ape.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": pre-install,pre-upgrade
+spec:
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "orderly-ape.labels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "orderly-ape.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      restartPolicy: Never
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - "sh"
+            - "-c"
+            - {{ .Values.initScript | quote }}
+          env:
+            - name: MY_POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            {{- with .Values.env }}
+              {{- toYaml . | nindent 12 }}
+            {{- end }}
+            {{- if not ( include "orderly-ape.hasEnvVar" (list "ALLOWED_HOSTS" .) ) }}
+            - name: ALLOWED_HOSTS
+              value: localhost,127.0.0.1,$(MY_POD_IP){{ if .Values.ingress.enabled }}{{ range .Values.ingress.hosts }}{{ print "," .host }}{{ end }}{{ end }}
+            {{- end }}
+            {{- if and .Values.ingress.enabled .Values.ingress.tls }}
+            {{- if not ( include "orderly-ape.hasEnvVar" (list "CSRF_TRUSTED_ORIGINS" .) ) }}
+            - name: CSRF_TRUSTED_ORIGINS
+              value: http://127.0.0.1{{ range .Values.ingress.hosts }}{{ print ",https://" .host }}{{ end }}
+            {{- end }}
+            {{- end }}
+            {{- if not ( include "orderly-ape.hasEnvVar" (list "DATABASE_URL" .) ) }}
+            - name: DATABASE_URL
+              value: "sqlite:////data/db.sqlite3"
+            {{- end }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.port }}
+              protocol: TCP
+          livenessProbe:
+            {{- toYaml .Values.livenessProbe | nindent 12 }}
+          readinessProbe:
+            {{- toYaml .Values.readinessProbe | nindent 12 }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - mountPath: /data
+              name: data
+          {{- if .Values.secret }}
+            - mountPath: /run/secrets
+              name: secrets
+              secret:
+                secretName: {{ include "orderly-ape.fullname" . }}
+          {{- end }}
+          {{- with .Values.volumeMounts }}
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      volumes:
+        - name: data
+          {{- if .Values.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ .Values.persistence.existingClaim | default (include "orderly-ape.fullname" .) }}
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+      {{- if .Values.secret }}
+        - name: secrets
+          secret:
+            secretName: {{ include "orderly-ape.fullname" . }}
+      {{- end }}
+      {{- with .Values.volumes }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}
+
