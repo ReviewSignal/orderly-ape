@@ -73,7 +73,11 @@ class TestLocation(BaseNamedModel):
 class TestOutputConfig(BaseNamedModel):
     @classmethod
     def default(cls):
-        return cls.objects.filter(name="default").first() or cls.objects.first()
+        return (
+            cls.objects.filter(name="default").first()
+            or cls.objects.first()
+            or cls.objects.create(name="default")
+        )
 
     influxdb_url = models.URLField(verbose_name=_("InfluxDB Server URL"))
     influxdb_token = models.CharField(max_length=200, verbose_name=_("InfluxDB Token"))
