@@ -74,3 +74,16 @@ Create the name of the service account to use
 {{- end }}
 {{- if $found }}{{ $name }}{{ end -}}
 {{- end }}
+
+{{/*
+Looks if there's an existing secret and reuse its password. If not it generates
+new password and use it.
+*/}}
+{{- define "orderly-ape.password" -}}
+{{- $secret := lookup "v1" "Secret" .Release.Namespace ( include "orderly-ape.fullname" . ) }}
+{{- if $secret }}
+{{- index $secret "data" "admin-password" }}
+{{- else }}
+{{- ( randAlphaNum 40 ) | b64enc | quote }}
+{{- end }}
+{{- end }}

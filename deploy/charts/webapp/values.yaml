@@ -127,3 +127,6 @@ nodeSelector: {}
 tolerations: []
 
 affinity: {}
+
+adminUser: admin
+adminPassword: ""

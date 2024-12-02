@@ -17,8 +17,9 @@ spec:
       {{- include "orderly-ape.selectorLabels" . | nindent 6 }}
   template:
     metadata:
-      {{- with .Values.podAnnotations }}
       annotations:
+        config/checksum: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+      {{- with .Values.podAnnotations }}
         {{- toYaml . | nindent 8 }}
       {{- end }}
       labels:
@@ -34,47 +35,6 @@ spec:
       serviceAccountName: {{ include "orderly-ape.serviceAccountName" . }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
-      initContainers:
-        - name: {{ .Chart.Name }}-migrate
-          securityContext:
-            {{- toYaml .Values.securityContext | nindent 12 }}
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
-          args: ["./manage.py", "migrate"]
-          env:
-            - name: MY_POD_IP
-              valueFrom:
-                fieldRef:
-                  fieldPath: status.podIP
-            {{- with .Values.env }}
-              {{- toYaml . | nindent 12 }}
-            {{- end }}
-            {{- if not ( include "orderly-ape.hasEnvVar" (list "ALLOWED_HOSTS" .) ) }}
-            - name: ALLOWED_HOSTS
-              value: localhost,127.0.0.1,$(MY_POD_IP){{ if .Values.ingress.enabled }}{{ range .Values.ingress.hosts }}{{ print "," .host }}{{ end }}{{ end }}
-            {{- end }}
-            {{- if and .Values.ingress.enabled .Values.ingress.tls }}
-            {{- if not ( include "orderly-ape.hasEnvVar" (list "CSRF_TRUSTED_ORIGINS" .) ) }}
-            - name: CSRF_TRUSTED_ORIGINS
-              value: http://127.0.0.1{{ range .Values.ingress.hosts }}{{ print ",https://" .host }}{{ end }}
-            {{- end }}
-            {{- end }}
-            {{- if not ( include "orderly-ape.hasEnvVar" (list "DATABASE_URL" .) ) }}
-            - name: DATABASE_URL
-              value: "sqlite:////data/db.sqlite3"
-            {{- end }}
-          volumeMounts:
-            - mountPath: /data
-              name: data
-          {{- if .Values.secret }}
-            - mountPath: /run/secrets
-              name: secrets
-              secret:
-                secretName: {{ include "orderly-ape.fullname" . }}
-          {{- end }}
-          {{- with .Values.volumeMounts }}
-            {{- toYaml . | nindent 12 }}
-          {{- end }}
       containers:
         - name: {{ .Chart.Name }}
           securityContext:
