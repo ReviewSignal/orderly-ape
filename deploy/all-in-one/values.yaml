@@ -1,0 +1,16 @@
+# digitalocean:
+#   mysql:
+#     uuid: 12345678-1234-1234-1234-123456789012
+#
+# grafana:
+#   host: grafana.example.com
+#   adminPassword: please-change-me
+#
+# influxdb:
+#   host: grafana.example.com
+#   adminPassword: please-change-me
+#
+# orderlyape:
+#   host: ape.example.com
+#   adminPassword: please-change-me
+#   workerBootstrapPassword: insecure-regenerate-Qxtg7kWwA5EgK7kAwe
