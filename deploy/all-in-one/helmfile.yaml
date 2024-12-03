@@ -3,6 +3,8 @@ environments:
     values:
       - orderlyApe:
           chartVersion: 0.0.1-dev.63
+          image:
+            tag: 0.0.1-dev.63
       - certManager:
           chartVersion: v1.16.2
       - ingressNginx:
@@ -268,7 +270,7 @@ releases:
     values:
     - adminPassword: {{ .Values.orderlyape.adminPassword | quote }}
     - image:
-        tag: "{{ .Values.orderlyape.version }}"
+        tag: "{{ .Values.orderlyApe.image.tag }}"
     - resources:
         limits:
           cpu: "0.5"
@@ -342,7 +344,7 @@ releases:
       - orderly-ape/orderly-ape
     values:
       - image:
-          tag: "{{ .Values.orderlyape.version }}"
+          tag: "{{ .Values.orderlyApe.image.tag }}"
       - config:
           region: local
           api:
