@@ -5,7 +5,7 @@ metadata:
   labels:
     {{- include "orderly-ape.labels" . | nindent 4 }}
   annotations:
-    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook": post-install,post-upgrade
 spec:
   template:
     metadata:
@@ -48,7 +48,7 @@ spec:
               from django.contrib.auth.models import Group
               User = get_user_model()
 
-              env = environ.FileAwareEnv()
+              env = environ.FileAwareEnv(DEBUG=(bool, False))
               admin_user = env.str("INITIAL_ADMIN_USER", default="")
               admin_password = env.str("INITIAL_ADMIN_PASSWORD", default="")
 
@@ -70,9 +70,9 @@ spec:
               influxdb_bucket = env.str("INFLUXDB_BUCKET", default="default")
               influxdb_tls_skip_verify = env.bool("INFLUXDB_TLS_SKIP_VERIFY", default=False)
 
-              if influxdb_token and TestOutputConfig.objects.count() == 0:
-                  output, created = TestOutputConfig.objects.get_or_create(name="default")
-                  if created:
+              if influxdb_token:
+                  output, _ = TestOutputConfig.objects.get_or_create(name="default")
+                  if not output.influxdb_url:
                     output.influxdb_url=influxdb_url
                     output.influxdb_token=influxdb_token
                     output.influxdb_org=influxdb_org
@@ -80,7 +80,7 @@ spec:
                     output.insecure_skip_verify=influxdb_tls_skip_verify
                     output.save()
 
-                    print(f"Created default test output.", file=sys.stderr)
+                    print(f"Created 'default' test output with '{influxdb_url}' influxdb url.", file=sys.stderr)
 
               # Setup default worker
               from loadtest.models import TestLocation
@@ -138,14 +138,6 @@ spec:
             - name: DATABASE_URL
               value: "sqlite:////data/db.sqlite3"
             {{- end }}
-          ports:
-            - name: http
-              containerPort: {{ .Values.service.port }}
-              protocol: TCP
-          livenessProbe:
-            {{- toYaml .Values.livenessProbe | nindent 12 }}
-          readinessProbe:
-            {{- toYaml .Values.readinessProbe | nindent 12 }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           volumeMounts:
@@ -154,8 +146,6 @@ spec:
           {{- if .Values.secret }}
             - mountPath: /run/secrets
               name: secrets
-              secret:
-                secretName: {{ include "orderly-ape.fullname" . }}
           {{- end }}
           {{- with .Values.volumeMounts }}
             {{- toYaml . | nindent 12 }}

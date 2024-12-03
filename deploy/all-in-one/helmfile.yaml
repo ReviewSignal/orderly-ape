@@ -1,6 +1,18 @@
 environments:
   default:
     values:
+      - orderlyApe:
+          chartVersion: 0.0.1-dev.63
+      - certManager:
+          chartVersion: v1.16.2
+      - ingressNginx:
+          chartVersion: 4.11.3
+      - grafana:
+          chartVersion: 8.6.4
+      - influxdb:
+          chartVersion: 2.1.2
+          image:
+            tag: 2.7.10-alpine
       - values.yaml
 ---
 repositories:
@@ -17,7 +29,8 @@ releases:
   - name: cert-manager
     namespace: orderly-ape
     chart: jetstack/cert-manager
-    version: v1.16.2
+    version: "{{ .Values.certManager.chartVersion }}"
+    wait: true
     values:
       - crds:
           enabled: true
@@ -28,6 +41,8 @@ releases:
   - name: orderly-ape-issuer
     namespace: orderly-ape
     chart: ./k8s-resource
+    needs:
+      - cert-manager
     values:
       - resources:
          - apiVersion: cert-manager.io/v1
@@ -47,6 +62,10 @@ releases:
   - name: ingress-nginx
     namespace: orderly-ape
     chart: ingress-nginx/ingress-nginx
+    version: "{{ .Values.ingressNginx.chartVersion }}"
+    wait: true
+    needs:
+      - cert-manager
     values:
       - controller:
           ingressClass: "orderly-ape"
@@ -57,13 +76,14 @@ releases:
   - name: influxdb
     namespace: orderly-ape
     chart: influxdata/influxdb2
+    version: "{{ .Values.influxdb.chartVersion }}"
     needs:
       - ingress-nginx
       - cert-manager
       - orderly-ape-issuer
     values:
       - image:
-          tag: 2.7.10-alpine
+          tag: {{ .Values.influxdb.image.tag | quote }}
       - nameOverride: influxdb
       - adminUser:
           organization: default
@@ -91,6 +111,7 @@ releases:
   - name: grafana
     namespace: orderly-ape
     chart: grafana/grafana
+    version: "{{ .Values.grafana.chartVersion }}"
     needs:
       - ingress-nginx
       - cert-manager
@@ -235,7 +256,7 @@ releases:
     namespace: orderly-ape
     # chart: ../charts/webapp
     chart: oci://ghcr.io/reviewsignal/orderly-ape/charts/orderly-ape
-    version: "{{ .Values.orderlyape.version }}"
+    version: "{{ .Values.orderlyApe.chartVersion }}"
     needs:
       - ingress-nginx
       - cert-manager
@@ -315,7 +336,7 @@ releases:
     namespace: k6-local
     # chart: ../charts/k6-operator
     chart: oci://ghcr.io/reviewsignal/orderly-ape/charts/k6-operator
-    version: "{{ .Values.orderlyape.version }}"
+    version: "{{ .Values.orderlyApe.chartVersion }}"
     needs:
       - orderly-ape/orderly-ape-k6-local-bootstrap
       - orderly-ape/orderly-ape
