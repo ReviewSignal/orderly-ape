@@ -2,9 +2,9 @@ environments:
   default:
     values:
       - orderlyApe:
-          chartVersion: 0.0.1-dev.67
+          chartVersion: v0.1.0
           image:
-            tag: 0.0.1-dev.67
+            tag: v0.1.0
       - certManager:
           chartVersion: v1.16.2
       - ingressNginx:
