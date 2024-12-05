@@ -3,7 +3,7 @@
 #   adminPassword: please-change-me
 #
 # influxdb:
-#   host: grafana.example.com
+#   host: influx.example.com
 #   adminPassword: please-change-me
 #
 # orderlyape:
