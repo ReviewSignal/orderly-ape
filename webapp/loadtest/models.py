@@ -339,7 +339,7 @@ class TestRunLocation(BaseBareModel):
     class Status(models.TextChoices):
         PENDING = "pending", _("Pending")
         QUEUED = "queued", _("Queued")
-        READY = "ready", _("Ready")
+        READY = "ready", _("Initializing")
         RUNNING = "running", _("Running")
         CANCELED = "canceled", _("Canceled")
         COMPLETED = "completed", _("Completed")
