@@ -26,6 +26,8 @@ repositories:
     url: https://helm.influxdata.com/
   - name: grafana
     url: https://grafana.github.io/helm-charts
+  - name: k8s-resource
+    url: git+https://github.com/ReviewSignal/orderly-ape@deploy/all-in-one/k8s-resource?ref=main
 
 releases:
   - name: cert-manager
@@ -42,7 +44,8 @@ releases:
 
   - name: orderly-ape-issuer
     namespace: orderly-ape
-    chart: ./k8s-resource
+    chart: k8s-resource/k8s-resource
+    # chart: ./k8s-resource
     needs:
       - cert-manager
     values:
@@ -178,7 +181,8 @@ releases:
 
   - name: orderly-ape-k6-local-bootstrap
     namespace: orderly-ape
-    chart: ./k8s-resource
+    # chart: ./k8s-resource
+    chart: k8s-resource/k8s-resource
     values:
       - resources:
           - apiVersion: v1
