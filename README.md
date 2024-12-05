@@ -57,7 +57,83 @@ flowchart LR
     G -- Exposes --> I
 ```
 
-## Installation
+## Installation on Digital Ocean
+
+### Prerequisites
+
+- Install the following tools:
+  - kubectl
+  - helm
+  - helmfile
+  - doctl
+
+### Setup Steps
+
+1. Install dependencies using Homebrew:
+   ```bash
+   brew install kubectl helm helmfile doctl
+   ```
+
+2. Initialize helmfile:
+   ```bash
+   helmfile init
+   ```
+
+3. Create Kubernetes Cluster
+   - Recommended: Use dedicated nodes for tests
+   - Configure auto-scaling if needed
+   - Include managed database operator
+
+4. Connect to DigitalOcean Cluster
+   ```bash
+   doctl kubernetes cluster kubeconfig save <cluster-name>
+   ```
+   - Use personal access token for authentication
+
+5. Create Managed MySQL Database
+   - Go to DigitalOcean Database section
+   - Create a new MySQL database
+   - Note the Database UUID (e.g., `2e0f0bf9-1804-474b-a101-107490c00183`)
+
+6. Clone Repository
+   ```bash
+   git clone <repository-url>
+   cd deploy/all-in-one
+   ```
+
+7. Configure `values.yaml`
+   - Fill out all required configuration parameters
+   - Include database connection details
+   - Set admin credentials
+
+8. Deploy Application
+   ```bash
+   helmfile sync
+   ```
+
+9. Retrieve Service IP
+   ```bash
+   kubectl -n orderly-ape get service
+   ```
+   - Locate the service with an external IP
+
+10. DNS Configuration
+    - Map your domain to the external IP from the previous step
+    - Ensure it matches the domain in `values.yaml`
+
+11. Access Application
+    - Open `https://<your-domain>/admin/`
+    - Login with admin credentials set in `values.yaml`
+
+### Troubleshooting
+
+- Verify all prerequisites are installed
+- Check kubernetes cluster connectivity
+- Validate database connection settings
+- Ensure helmfile sync completes without errors
+
+
+## Install Instructions (General)
 
 ### Pre-requisites
 
