@@ -93,11 +93,11 @@ flowchart LR
 5. Create Managed MySQL Database
    - Go to DigitalOcean Database section
    - Create a new MySQL database
-   - Note the Database UUID (e.g., `2e0f0bf9-1804-474b-a101-107490c00183`)
+   - Note the Database UUID (e.g., `2e0f0bf9-1804-474b-a101-107490c00183` in the URL)
 
 6. Clone Repository
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/ReviewSignal/orderly-ape.git
    cd deploy/all-in-one
    ```
 
