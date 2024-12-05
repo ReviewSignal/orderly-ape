@@ -94,9 +94,8 @@ flowchart LR
    ```
    - Use personal access token for authentication
 
-5. Configure `values.yaml`
+5. Copy and Configure `values.yaml` which can be found in [/deploy/all-in-one/](/deploy/all-in-one/values.yaml)
    - Fill out all required configuration parameters
-   - Include database connection details
    - Set admin credentials
 
 6. Deploy the application with the following command
@@ -115,9 +114,15 @@ flowchart LR
     - Map your domain to the external IP from the previous step
     - Ensure it matches the domain in `values.yaml`
 
-9. Access Application
+9. Make sure the SSL certificates have been successfully issued and Ready state is True
+   ```bash
+   kubectl -n orderly-ape get certificates
+   ```
+
+10. Access Application
     - Open `https://<your-domain>/admin/`
     - Login with admin credentials set in `values.yaml`
+    - Run your k6 load tests
 
 ### Troubleshooting
 
