@@ -103,7 +103,7 @@ flowchart LR
    ```bash
    curl -s https://raw.githubusercontent.com/ReviewSignal/orderly-ape/refs/tags/v0.1.0/deploy/all-in-one/helmfile.yaml | helmfile sync -f-
    ```
-   -This pulls the latest helmfile and automatically deploys the application
+   - This pulls the latest helmfile and automatically deploys the application
 
 7. Retrieve Service IP
    ```bash
@@ -162,7 +162,7 @@ doctl kubernetes cluster kubeconfig save <clustername>
 kubectl config get-contexts
 ```
 
-Find the context you wish to install in, copy the name and run the following
+- Find the context you wish to install in, copy the name and run the following
 
 ```bash
 kubectl config set-context <your-namespace-context>
