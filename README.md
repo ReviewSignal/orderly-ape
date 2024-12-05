@@ -162,7 +162,7 @@ doctl kubernetes cluster kubeconfig save <clustername>
 kubectl config get-contexts
 ```
 
-    - Find the context you wish to install in, copy the name and run the following
+  - Find the context you wish to install in, copy the name and run the following
 
 ```bash
 kubectl config set-context <your-namespace-context>
