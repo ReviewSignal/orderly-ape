@@ -256,6 +256,10 @@ class TestRun(BaseNamedModel):
                 )
 
         url = f"{settings.GRAFANA_DASHBOARD_URL}&var-testid={self.name}&from={date_from}&to={date_to}"  # noqa: E501
+
+        if not self.completed_at:
+            url += "&refresh=10s"  # auto refresh every 10 seconds while test is running
+
         return url
 
     class Meta:  # pyright: ignore [reportIncompatibleVariableOverride]
