@@ -192,7 +192,10 @@ class TestRunAdmin(admin.ModelAdmin):
     ]
     date_hierarchy = "created_at"
     search_fields = ["target", "name", "source_repo", "source_script"]
-    readonly_fields = ("draft",)
+    readonly_fields = (
+        "draft",
+        "name",
+    )
     form = TestRunAdminForm
     inlines = [TestRunLocationInline, TestRunEnvVarInline, TestRunLabelInline]
     actions = ["start_test_runs", "cancel_test_runs"]
