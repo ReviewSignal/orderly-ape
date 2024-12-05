@@ -2,9 +2,9 @@ environments:
   default:
     values:
       - orderlyApe:
-          chartVersion: 0.0.1-dev.63
+          chartVersion: 0.0.1-dev.67
           image:
-            tag: 0.0.1-dev.63
+            tag: 0.0.1-dev.67
       - certManager:
           chartVersion: v1.16.2
       - ingressNginx:
@@ -176,69 +176,6 @@ releases:
                 - name: DS_INFLUXDB
                   value: InfluxDB
 
-  - name: orderly-ape-database
-    namespace: orderly-ape
-    chart: ./k8s-resource
-    values:
-      - resources:
-          - apiVersion: databases.digitalocean.com/v1alpha1
-            kind: DatabaseClusterReference
-            metadata:
-              name: orderly-ape-db
-              namespace: orderly-ape
-            spec:
-              uuid: {{ .Values.digitalocean.mysql.uuid | quote }}
-          - apiVersion: databases.digitalocean.com/v1alpha1
-            kind: DatabaseUser
-            metadata:
-              name: orderly-ape-db
-              namespace: orderly-ape
-            spec:
-              databaseCluster:
-                apiGroup: databases.digitalocean.com
-                kind: DatabaseClusterReference
-                name: orderly-ape-db
-              username: orderly-ape
-          - apiVersion: batch/v1
-            kind: Job
-            metadata:
-              name: orderly-ape-init-db
-              namespace: orderly-ape
-              annotations:
-                "helm.sh/hook": post-install,post-upgrade
-            spec:
-              template:
-                spec:
-                  restartPolicy: Never
-                  containers:
-                  - name: mysql-client
-                    image: alpine/mysql
-                    command:
-                      - "sh"
-                      - "-c"
-                      - mysql -h $DB_HOST -P $DB_PORT -u $DB_USERNAME -p$DB_PASSWORD -e 'CREATE DATABASE IF NOT EXISTS `orderly-ape`;'
-                    env:
-                    - name: DB_HOST
-                      valueFrom:
-                        configMapKeyRef:
-                          name: orderly-ape-db-private-connection
-                          key: host
-                    - name: DB_PORT
-                      valueFrom:
-                        configMapKeyRef:
-                          name: orderly-ape-db-private-connection
-                          key: port
-                    - name: DB_USERNAME
-                      valueFrom:
-                        secretKeyRef:
-                          name: orderly-ape-db-credentials
-                          key: username
-                    - name: DB_PASSWORD
-                      valueFrom:
-                        secretKeyRef:
-                          name: orderly-ape-db-credentials
-                          key: password
-
   - name: orderly-ape-k6-local-bootstrap
     namespace: orderly-ape
     chart: ./k8s-resource
@@ -265,7 +202,6 @@ releases:
       - orderly-ape-issuer
       - influxdb
       - grafana
-      - orderly-ape-database
       - orderly-ape-k6-local-bootstrap
     values:
     - adminPassword: {{ .Values.orderlyape.adminPassword | quote }}
@@ -292,29 +228,10 @@ releases:
         - secretName: orderly-ape-tls
           hosts:
             - {{ .Values.orderlyape.host }}
+    - persistence:
+        enabled: true
+        size: {{ .Values | get "orderlyape.diskSize" "10Gi" | quote }}
     - env:
-      - name: DATABASE_HOST
-        valueFrom:
-          configMapKeyRef:
-            name: orderly-ape-db-private-connection
-            key: host
-      - name: DATABASE_PORT
-        valueFrom:
-          configMapKeyRef:
-            name: orderly-ape-db-private-connection
-            key: port
-      - name: DATABASE_USER
-        valueFrom:
-          secretKeyRef:
-            name: orderly-ape-db-credentials
-            key: username
-      - name: DATABASE_PASSWORD
-        valueFrom:
-          secretKeyRef:
-            name: orderly-ape-db-credentials
-            key: password
-      - name: DATABASE_URL
-        value: mysql://$(DATABASE_USER):$(DATABASE_PASSWORD)@$(DATABASE_HOST):$(DATABASE_PORT)/orderly-ape
       - name: GRAFANA_DASHBOARD_URL
         value: https://{{ .Values.grafana.host }}/d/bdqz4a3k8j08wa?orgId=1
       - name: INFLUXDB_URL
