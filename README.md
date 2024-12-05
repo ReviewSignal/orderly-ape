@@ -8,9 +8,9 @@ Orchestrate and run k6 load tests across multiple Kubernetes clusters. It consis
 ## Table of Contents
 
 -   [Architecture](#architecture)
--   [Installation](#installation)
--   [K6 Operator Flowchart](#flowchart)
--   [Contributing](#contributing)
+-   [Installation on Digital Ocean](#installation-on-digital-ocean)
+-   [Additional Testing Locations](#installing-additional-testing-locations)
+-   [K6 Operator State Diagram](#k6-operator-state-diagram)
 -   [License](#license)
 
 ## Sponsors
@@ -129,13 +129,15 @@ flowchart LR
 
 ## Installing Additional Testing Locations
 
+Please note: In this example we use 'london' as the example location but please change it according to your setup and change all references to 'london'.
+
 1. Add location from Orderly Ape webapp
 
 2. Add user from Orderly Ape webapp
 
 3. Add user to Workers group
 
-4. Create a values.london.yaml file in the deploy/all-in-one/ folder. In the example we use 'london' but please change it according to your setup.
+4. Create a values.london.yaml file in the deploy/all-in-one/ folder.
 
 ```yaml
 config:
