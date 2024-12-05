@@ -13,6 +13,10 @@ Orchestrate and run k6 load tests across multiple Kubernetes clusters. It consis
 -   [Contributing](#contributing)
 -   [License](#license)
 
+## Sponsors
+
+
+
 ## Architecture
 
 -   [webapp](webapp) - Web application that allows configuring tests and coordinating between independent k6-operators in Kubernetes clusters.
@@ -90,38 +94,28 @@ flowchart LR
    ```
    - Use personal access token for authentication
 
-5. Create Managed MySQL Database
-   - Go to DigitalOcean Database section
-   - Create a new MySQL database
-   - Note the Database UUID (e.g., `2e0f0bf9-1804-474b-a101-107490c00183` in the URL)
-
-6. Clone Repository
-   ```bash
-   git clone https://github.com/ReviewSignal/orderly-ape.git
-   cd deploy/all-in-one
-   ```
-
-7. Configure `values.yaml`
+5. Configure `values.yaml`
    - Fill out all required configuration parameters
    - Include database connection details
    - Set admin credentials
 
-8. Deploy Application
+6. Deploy the application with the following command
    ```bash
-   helmfile sync
+   curl -s https://raw.githubusercontent.com/ReviewSignal/orderly-ape/refs/tags/v0.1.0/deploy/all-in-one/helmfile.yaml | helmfile sync -f-
    ```
+   -This pulls the latest helmfile and automatically deploys the application
 
-9. Retrieve Service IP
+7. Retrieve Service IP
    ```bash
    kubectl -n orderly-ape get service
    ```
    - Locate the service with an external IP
 
-10. DNS Configuration
+8. DNS Configuration
     - Map your domain to the external IP from the previous step
     - Ensure it matches the domain in `values.yaml`
 
-11. Access Application
+9. Access Application
     - Open `https://<your-domain>/admin/`
     - Login with admin credentials set in `values.yaml`
 
@@ -131,41 +125,56 @@ flowchart LR
 - Check kubernetes cluster connectivity
 - Validate database connection settings
 - Ensure helmfile sync completes without errors
+- If you're getting an invalid certificate warning, wait a few minutes for the certificate to get issued automatically (You can check using the command `watch kubectl -n orderly-ape get certificates`). Additionally, you can refer to [Cert Manager documentation](https://cert-manager.io/docs/troubleshooting/)
 
+## Installing Additional Testing Locations
 
-## Install Instructions (General)
+1. Add location from Orderly Ape webapp
 
-### Pre-requisites
+2. Add user from Orderly Ape webapp
 
-Before you install Orderly Ape you should install it's data stack, with a functional [Grafana](https://artifacthub.io/packages/helm/grafana/grafana)
-instance that can connect and display data from a functional [InfluxDB](https://artifacthub.io/packages/helm/influxdata/influxdb2).
+3. Add user to Workers group
 
-### Install the Orderly Ape
+4. Create a values.london.yaml file in the deploy/all-in-one/ folder. In the example we use 'london' but please change it according to your setup.
 
-Orderly Ape publishes helm charts as OCI images in the GitHub Container Registry. You can check releases on the GitHub
-repository [releases page](https://github.com/ReviewSignal/orderly-ape/releases).
-
-#### Install the webapp
-
-```bash
-helm upgrade -i orderly-ape oci://ghcr.io/reviewsignal/orderly-ape/charts/orderly-ape v0.1.0
+```yaml
+config:
+  region: london
+  api:
+    endpoint: https://YourOrderlyApeWebApp.com/api
+    user: london
+    password: passwordgoeshere
 ```
 
-For more details, check the [webapp chart docs](deploy/charts/webapp/README.md).
+5. Create a new kubernetes cluster in the location of your choice. Make sure to turn on autoscaling and start at minimum 1 node (maximum is up to your scaling needs). The first node needs to be online to connect to the webapp cluster and start auto scaling to run tests.
 
-#### Install the k6-operator
-
-You should install the operator in all the Kubernetes clusters you want to run tests on. For compatibility with the
-webapp, you shoud install the same version of the k6-operator as the webapp.
-
-Also, for each operator, you should create a separate account on the webapp, and place the account in the `Workers`
-group.
+6. Connect to your kubernetes cluster using the same command as step 4 of the original install.
 
 ```bash
-helm upgrade -i orderly-ape-k6-operator oci://ghcr.io/reviewsignal/orderly-ape/charts/k6-operator v0.1.0
+doctl kubernetes cluster kubeconfig save <clustername>
 ```
 
-For more details, check the [k6-operator chart docs](deploy/charts/k6-operator/README.md).
+7. Make sure you are in the proper context on kubernetes (the one you just created). You can check your contexts using the following command
+
+```bash
+kubectl config get-contexts
+```
+
+Find the context you wish to install in, copy the name and run the following
+
+```bash
+kubectl config set-context <your-namespace-context>
+```
+
+8. Run the following commands to create the namespace and install the Orderly Ape k6 operator
+```bash
+kubectl create ns k6-london
+helm install -n k6-london -f values.london.yaml --wait k6-operator oci://ghcr.io/reviewsignal/orderly-ape/charts/k6-operator --version v0.1.0
+```
+
+9. Check the Test Locations (/admin/loadtest/testlocation/) in the Orderly Ape web app, you should see a green check next to the location you created. This indicates it created and connected successfully and can now be used for running tests.
+
+
 
 ### k6-operator state diagram
 
@@ -176,23 +185,23 @@ flowchart TD
 %% States
     PENDING([PENDING])
     QUEUED
-    READY
+    INITIALIZING
     RUNNING
     COMPLETED([COMPLETED])
     FAILED([FAILED])
     CANCELED([CANCELED])
 %% Transitions
     PENDING -- accept() --> QUEUED
-    QUEUED -- fa:fa-pause wait for pods --> READY
-    READY -- pods ready, start testing --> RUNNING
+    QUEUED -- fa:fa-pause wait for pods --> INITIALIZING
+    INITIALIZING -- pods ready, start testing --> RUNNING
     RUNNING -- complete() --> COMPLETED
     PENDING -- fail() --> FAILED
     QUEUED -- fail() --> FAILED
-    READY -- fail() --> FAILED
+    INITIALIZING -- fail() --> FAILED
     RUNNING -- fail() --> FAILED
     PENDING -- cancel() --> CANCELED
     QUEUED -- cancel() --> CANCELED
-    READY -- cancel() --> CANCELED
+    INITIALIZING -- cancel() --> CANCELED
     RUNNING -- cancel() --> CANCELED
 ```
 
