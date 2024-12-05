@@ -25,4 +25,4 @@ RUN mkdir -p ${WEBROOT} \
     && SECRET_KEY=not-so-secret python manage.py collectstatic --noinput --clear -v2
 
 USER nonroot:nonroot
-CMD exec gunicorn webapp.wsgi:application -b 0.0.0.0:${PORT} -w $(( 2 * $(nproc) + 1 )) --name orderly-ape
+CMD exec gunicorn webapp.wsgi:application -b "0.0.0.0:${PORT}" -w "${WORKERS:-$(( 2 * $(nproc) + 1 < 12 ? 12 : 2 * $(nproc) + 1 ))}" --name orderly-ape
