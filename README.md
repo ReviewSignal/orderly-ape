@@ -17,6 +17,19 @@ Orchestrate and run k6 load tests across multiple Kubernetes clusters. It consis
 
 
 
+### Silver Sponsors
+
+<p align="center">
+  <img src="https://wphostingbenchmarks.com/wp-content/uploads/2024/12/pressable-logo.png" alt="Pressable Logo" width="150"/>
+  <img src="https://wphostingbenchmarks.com/wp-content/uploads/2024/12/knownhost-logo.png" alt="KnownHost Logo" width="150"/>
+  <img src="https://wphostingbenchmarks.com/wp-content/uploads/2024/12/rapyd-cloud-logo.png" alt="Rapyd.cloud Logo" width="150"/>
+</p>
+
+Orderly Ape is actively [looking for more sponsors](https://forms.gle/fbYeFHYxS6eaxKwQ6).
+
+
+This project is supported by Open Source credits from [Digital Ocean](https://www.digitalocean.com/?refcode=f7ab9b6a5532)
+
 ## Architecture
 
 -   [webapp](webapp) - Web application that allows configuring tests and coordinating between independent k6-operators in Kubernetes clusters.
