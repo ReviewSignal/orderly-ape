@@ -85,8 +85,7 @@ flowchart LR
 
 3. Create Kubernetes Cluster
    - Recommended: Use dedicated nodes for tests
-   - Configure auto-scaling if needed
-   - Include managed database operator
+   - Configure auto-scaling (recommended: min 3)
 
 4. Connect to DigitalOcean Cluster
    ```bash
@@ -128,7 +127,6 @@ flowchart LR
 
 - Verify all prerequisites are installed
 - Check kubernetes cluster connectivity
-- Validate database connection settings
 - Ensure helmfile sync completes without errors
 - If you're getting an invalid certificate warning, wait a few minutes for the certificate to get issued automatically (You can check using the command `watch kubectl -n orderly-ape get certificates`). Additionally, you can refer to [Cert Manager documentation](https://cert-manager.io/docs/troubleshooting/)
 
