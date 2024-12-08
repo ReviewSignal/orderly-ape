@@ -1,3 +1,6 @@
+[![Discord](https://img.shields.io/discord/1314253389001134163?style=flat&logo=Discord&label=Discord)](https://discord.gg/TTneqF8XRw)
+![License](https://img.shields.io/github/license/ReviewSignal/orderly-ape)
+
 # Orderly Ape
 
 Orchestrate and run k6 load tests across multiple Kubernetes clusters. It consists of two main components:
