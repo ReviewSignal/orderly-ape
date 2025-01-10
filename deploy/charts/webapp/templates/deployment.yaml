@@ -144,7 +144,7 @@ spec:
             {{- end }}
             {{- if not ( include "orderly-ape.hasEnvVar" (list "DATABASE_URL" .) ) }}
             - name: DATABASE_URL
-              value: "sqlite:////data/db.sqlite3"
+              value: "sqlite:////data/db.sqlite3?transaction_mode=IMMEDIATE&init_command=PRAGMA%20journal_mode%3DWAL%3B%20PRAGMA%20synchronous%3DNORMAL%3B%20PRAGMA%20mmap_size%3D134217728%3B%20PRAGMA%20journal_size_limit%3D67108864%3B%20PRAGMA%20cache_size%3D2000%3B"
             {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
@@ -186,7 +186,7 @@ spec:
             {{- end }}
             {{- if not ( include "orderly-ape.hasEnvVar" (list "DATABASE_URL" .) ) }}
             - name: DATABASE_URL
-              value: "sqlite:////data/db.sqlite3"
+              value: "sqlite:////data/db.sqlite3?transaction_mode=IMMEDIATE&init_command=PRAGMA%20journal_mode%3DWAL%3B%20PRAGMA%20synchronous%3DNORMAL%3B%20PRAGMA%20mmap_size%3D134217728%3B%20PRAGMA%20journal_size_limit%3D67108864%3B%20PRAGMA%20cache_size%3D2000%3B"
             {{- end }}
           ports:
             - name: http
