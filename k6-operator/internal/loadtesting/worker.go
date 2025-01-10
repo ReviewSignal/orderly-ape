@@ -7,8 +7,8 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 
-	"github.com/ReviewSignal/loadtesting/k6-operator/internal/loadtesting/client"
-	"github.com/ReviewSignal/loadtesting/k6-operator/internal/loadtesting/runtime"
+	"github.com/ReviewSignal/orderly-ape/k6-operator/internal/loadtesting/client"
+	"github.com/ReviewSignal/orderly-ape/k6-operator/internal/loadtesting/runtime"
 )
 
 var log = ctrl.Log.WithName("loadtesting-worker")
