@@ -6,9 +6,9 @@ asgiref==3.8.1 \
     # via
     #   -c requirements.txt
     #   django
-django==5.1.3 \
-    --hash=sha256:8b38a9a12da3ae00cb0ba72da985ec4b14de6345046b1e174b1fd7254398f818 \
-    --hash=sha256:c0fa0e619c39325a169208caef234f90baa925227032ad3f44842ba14d75234a
+django==5.1.4 \
+    --hash=sha256:236e023f021f5ce7dee5779de7b286565fdea5f4ab86bae5338e3f7b69896cf0 \
+    --hash=sha256:de450c09e91879fa5a307f696e57c851955c910a438a35e6b4c895e86bedc82a
     # via
     #   -c requirements.txt
     #   orderly-ape (pyproject.toml)
@@ -37,9 +37,9 @@ django-fsm-2==3.0.0 \
     # via
     #   -c requirements.txt
     #   orderly-ape (pyproject.toml)
-django-types==0.19.1 \
-    --hash=sha256:5ae7988612cf6fbc357b018bbc3b3a878b65e04275cc46e0d35d66a708daff12 \
-    --hash=sha256:b3f529de17f6374d41ca67232aa01330c531bbbaa3ac4097896f31ac33c96c30
+django-types==0.20.0 \
+    --hash=sha256:4e55d2c56155e3d69d75def9eb1d95a891303f2ac19fccf6fe8056da4293fae7 \
+    --hash=sha256:a0b5c2c9a1e591684bb21a93b64e50ca6cb2d3eab48f49faff1eac706bd3a9c7
     # via orderly-ape (pyproject.toml)
 djangorestframework==3.15.2 \
     --hash=sha256:2b8871b062ba1aefc2de01f773875441a961fefbf79f5eed1e32b2f096944b20 \
@@ -57,9 +57,9 @@ durationpy==0.9 \
     # via
     #   -c requirements.txt
     #   orderly-ape (pyproject.toml)
-sqlparse==0.5.2 \
-    --hash=sha256:9e37b35e16d1cc652a2545f0997c1deb23ea28fa1f3eefe609eee3063c3b105f \
-    --hash=sha256:e99bc85c78160918c3e1d9230834ab8d80fc06c59d03f8db2618f65f65dda55e
+sqlparse==0.5.3 \
+    --hash=sha256:09f67787f56a0b16ecdbde1bfc7f5d9c3371ca683cfeaa8e6ff60b4807ec9272 \
+    --hash=sha256:cf2196ed3418f3ba5de6af7e82c694a9fbdbfecccdfc72e281548517081f16ca
     # via
     #   -c requirements.txt
     #   django
