@@ -154,8 +154,6 @@ spec:
           {{- if .Values.secret }}
             - mountPath: /run/secrets
               name: secrets
-              secret:
-                secretName: {{ include "orderly-ape.fullname" . }}
           {{- end }}
           {{- with .Values.volumeMounts }}
             {{- toYaml . | nindent 12 }}
@@ -204,8 +202,6 @@ spec:
           {{- if .Values.secret }}
             - mountPath: /run/secrets
               name: secrets
-              secret:
-                secretName: {{ include "orderly-ape.fullname" . }}
           {{- end }}
           {{- with .Values.volumeMounts }}
             {{- toYaml . | nindent 12 }}
