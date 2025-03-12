@@ -6,9 +6,9 @@ asgiref==3.8.1 \
     # via
     #   -c requirements.txt
     #   django
-django==5.1.4 \
-    --hash=sha256:236e023f021f5ce7dee5779de7b286565fdea5f4ab86bae5338e3f7b69896cf0 \
-    --hash=sha256:de450c09e91879fa5a307f696e57c851955c910a438a35e6b4c895e86bedc82a
+django==5.1.7 \
+    --hash=sha256:1323617cb624add820cb9611cdcc788312d250824f92ca6048fda8625514af2b \
+    --hash=sha256:30de4ee43a98e5d3da36a9002f287ff400b43ca51791920bfb35f6917bfe041c
     # via
     #   -c requirements.txt
     #   orderly-ape (pyproject.toml)
@@ -16,18 +16,20 @@ django==5.1.4 \
     #   django-debug-toolbar
     #   django-fsm-2
     #   djangorestframework
-django-autocomplete-light==3.11.0 \
-    --hash=sha256:212576a17e3308ef7ca77e280b86684167916d2091d4b73640f38845d9516328
+django-autocomplete-light==3.12.1 \
+    --hash=sha256:50f7b83681feec6491c38e6114d7a4fe80f9e99a8cc6c8458a3e7bb137ad6b1d
     # via
     #   -c requirements.txt
     #   orderly-ape (pyproject.toml)
-django-debug-toolbar==4.4.6 \
-    --hash=sha256:36e421cb908c2f0675e07f9f41e3d1d8618dc386392ec82d23bcfcd5d29c7044 \
-    --hash=sha256:3beb671c9ec44ffb817fad2780667f172bd1c067dbcabad6268ce39a81335f45
-    # via orderly-ape (pyproject.toml)
-django-environ==0.11.2 \
-    --hash=sha256:0ff95ab4344bfeff693836aa978e6840abef2e2f1145adff7735892711590c05 \
-    --hash=sha256:f32a87aa0899894c27d4e1776fa6b477e8164ed7f6b3e410a62a6d72caaf64be
+django-debug-toolbar==5.0.1 \
+    --hash=sha256:296f6f18a80710e84fbb8361538ae5ec522a75ebe9ab67db34bcf1026cbeb420 \
+    --hash=sha256:7456cc2e951db37dab335686db7803c4a0ecb6736d120705f6668db9548bf49f
+    # via
+    #   -c requirements.txt
+    #   orderly-ape (pyproject.toml)
+django-environ==0.12.0 \
+    --hash=sha256:227dc891453dd5bde769c3449cf4a74b6f2ee8f7ab2361c93a07068f4179041a \
+    --hash=sha256:92fb346a158abda07ffe6eb23135ce92843af06ecf8753f43adf9d2366dcc0ca
     # via
     #   -c requirements.txt
     #   orderly-ape (pyproject.toml)
@@ -64,13 +66,13 @@ sqlparse==0.5.3 \
     #   -c requirements.txt
     #   django
     #   django-debug-toolbar
-types-psycopg2==2.9.21.20241019 \
-    --hash=sha256:44d091e67732d16a941baae48cd7b53bf91911bc36888652447cf1ef0c1fb3f6 \
-    --hash=sha256:bca89b988d2ebd19bcd08b177d22a877ea8b841decb10ed130afcf39404612fa
+types-psycopg2==2.9.21.20250121 \
+    --hash=sha256:2b0e2cd0f3747af1ae25a7027898716d80209604770ef3cbf350fe055b9c349b \
+    --hash=sha256:b890dc6f5a08b6433f0ff73a4ec9a834deedad3e914f2a4a6fd43df021f745f1
     # via django-types
-whitenoise==6.8.2 \
-    --hash=sha256:486bd7267a375fa9650b136daaec156ac572971acc8bf99add90817a530dd1d4 \
-    --hash=sha256:df12dce147a043d1956d81d288c6f0044147c6d2ab9726e5772ac50fb45d2280
+whitenoise==6.9.0 \
+    --hash=sha256:8c4a7c9d384694990c26f3047e118c691557481d624f069b7f7752a2f735d609 \
+    --hash=sha256:c8a489049b7ee9889617bb4c274a153f3d979e8f51d2efd0f5b403caf41c57df
     # via
     #   -c requirements.txt
     #   orderly-ape (pyproject.toml)
