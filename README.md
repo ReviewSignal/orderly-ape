@@ -119,7 +119,7 @@ flowchart LR
 6. Deploy the application with the following command
 
     ```bash
-    curl -s https://raw.githubusercontent.com/ReviewSignal/orderly-ape/refs/tags/v0.1.1/deploy/all-in-one/helmfile.yaml | helmfile sync -f-
+    curl -s https://raw.githubusercontent.com/ReviewSignal/orderly-ape/refs/tags/v0.1.2/deploy/all-in-one/helmfile.yaml | helmfile sync -f-
     ```
 
     - This pulls the latest helmfile and automatically deploys the application
@@ -200,7 +200,7 @@ Please note: In this example we use 'london' as the example location but please 
 
     ```bash
     kubectl create ns k6-london
-    helm install -n k6-london -f values.london.yaml --wait k6-operator oci://ghcr.io/reviewsignal/orderly-ape/charts/k6-operator --version v0.1.1
+    helm install -n k6-london -f values.london.yaml --wait k6-operator oci://ghcr.io/reviewsignal/orderly-ape/charts/k6-operator --version v0.1.2
     ```
 
 9. Check the Test Locations (/admin/loadtest/testlocation/) in the Orderly Ape web app, you should see a green check next to the location you created. This indicates it created and connected successfully and can now be used for running tests.
