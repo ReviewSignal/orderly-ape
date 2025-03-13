@@ -195,3 +195,13 @@ GRAFANA_DASHBOARD_URL = env.str(
     "GRAFANA_DASHBOARD_URL",
     default="http://localhost:3000/d/1/orderly-ape-summary?orgId=1",
 )
+
+SENTRY_DSN = env.str("SENTRY_DSN", default="")
+
+SENTRY_INIT_OPTIONS = env.json("SENTRY_INIT_OPTIONS", default={})
+
+if SENTRY_DSN:
+    import sentry_sdk
+
+    SENTRY_INIT_OPTIONS["dsn"] = SENTRY_DSN
+    sentry_sdk.init(SENTRY_INIT_OPTIONS)

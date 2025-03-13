@@ -6,6 +6,12 @@ asgiref==3.8.1 \
     # via
     #   -c requirements.txt
     #   django
+certifi==2025.1.31 \
+    --hash=sha256:3d5da6925056f6f18f119200434a4780a94263f10d1c21d032a6f6b2baa20651 \
+    --hash=sha256:ca78db4565a652026a4db2bcdf68f2fb589ea80d0be70e03929ed730746b84fe
+    # via
+    #   -c requirements.txt
+    #   sentry-sdk
 django==5.1.7 \
     --hash=sha256:1323617cb624add820cb9611cdcc788312d250824f92ca6048fda8625514af2b \
     --hash=sha256:30de4ee43a98e5d3da36a9002f287ff400b43ca51791920bfb35f6917bfe041c
@@ -16,6 +22,7 @@ django==5.1.7 \
     #   django-debug-toolbar
     #   django-fsm-2
     #   djangorestframework
+    #   sentry-sdk
 django-autocomplete-light==3.12.1 \
     --hash=sha256:50f7b83681feec6491c38e6114d7a4fe80f9e99a8cc6c8458a3e7bb137ad6b1d
     # via
@@ -59,6 +66,12 @@ durationpy==0.9 \
     # via
     #   -c requirements.txt
     #   orderly-ape (pyproject.toml)
+sentry-sdk==2.22.0 \
+    --hash=sha256:3d791d631a6c97aad4da7074081a57073126c69487560c6f8bffcf586461de66 \
+    --hash=sha256:b4bf43bb38f547c84b2eadcefbe389b36ef75f3f38253d7a74d6b928c07ae944
+    # via
+    #   -c requirements.txt
+    #   orderly-ape (pyproject.toml)
 sqlparse==0.5.3 \
     --hash=sha256:09f67787f56a0b16ecdbde1bfc7f5d9c3371ca683cfeaa8e6ff60b4807ec9272 \
     --hash=sha256:cf2196ed3418f3ba5de6af7e82c694a9fbdbfecccdfc72e281548517081f16ca
@@ -70,6 +83,12 @@ types-psycopg2==2.9.21.20250121 \
     --hash=sha256:2b0e2cd0f3747af1ae25a7027898716d80209604770ef3cbf350fe055b9c349b \
     --hash=sha256:b890dc6f5a08b6433f0ff73a4ec9a834deedad3e914f2a4a6fd43df021f745f1
     # via django-types
+urllib3==2.3.0 \
+    --hash=sha256:1cee9ad369867bfdbbb48b7dd50374c0967a0bb7710050facf0dd6911440e3df \
+    --hash=sha256:f8c5449b3cf0861679ce7e0503c7b44b5ec981bec0d1d3795a07f1ba96f0204d
+    # via
+    #   -c requirements.txt
+    #   sentry-sdk
 whitenoise==6.9.0 \
     --hash=sha256:8c4a7c9d384694990c26f3047e118c691557481d624f069b7f7752a2f735d609 \
     --hash=sha256:c8a489049b7ee9889617bb4c274a153f3d979e8f51d2efd0f5b403caf41c57df

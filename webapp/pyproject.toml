@@ -22,6 +22,7 @@ dependencies = [
   'durationpy ~= 0.9',
   'whitenoise',
   'django-debug-toolbar',
+  'sentry-sdk[django]'
 ]
 
 [project.optional-dependencies]
