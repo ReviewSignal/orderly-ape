@@ -253,6 +253,10 @@ releases:
           secretKeyRef:
             name: orderly-ape-k6-local-bootstrap
             key: password
+      - name: GUNICORN_CMD_ARGS
+        value: "-k gevent"
+      - name: WORKERS
+        value: "4"
 
   - name: k6-operator
     namespace: k6-local
