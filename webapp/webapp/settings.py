@@ -156,15 +156,15 @@ STATICFILES_FINDERS = [
 ]
 
 PASSWORD_HASHERS = [
+    "django.contrib.auth.hashers.Argon2PasswordHasher",
     "django.contrib.auth.hashers.PBKDF2PasswordHasher",
     "django.contrib.auth.hashers.PBKDF2SHA1PasswordHasher",
-    "django.contrib.auth.hashers.Argon2PasswordHasher",
     "django.contrib.auth.hashers.BCryptSHA256PasswordHasher",
     "django.contrib.auth.hashers.ScryptPasswordHasher",
 ]
 
 PASSWORD_HASHER = env.str(
-    "PASSWORD_HASHER", default="django.contrib.auth.hashers.PBKDF2PasswordHasher"
+    "PASSWORD_HASHER", default="django.contrib.auth.hashers.Argon2PasswordHasher"
 )
 
 if PASSWORD_HASHER:
