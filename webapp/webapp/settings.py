@@ -155,6 +155,22 @@ STATICFILES_FINDERS = [
     "django.contrib.staticfiles.finders.AppDirectoriesFinder",
 ]
 
+PASSWORD_HASHERS = [
+    "django.contrib.auth.hashers.PBKDF2PasswordHasher",
+    "django.contrib.auth.hashers.PBKDF2SHA1PasswordHasher",
+    "django.contrib.auth.hashers.Argon2PasswordHasher",
+    "django.contrib.auth.hashers.BCryptSHA256PasswordHasher",
+    "django.contrib.auth.hashers.ScryptPasswordHasher",
+]
+
+PASSWORD_HASHER = env.str(
+    "PASSWORD_HASHER", default="django.contrib.auth.hashers.PBKDF2PasswordHasher"
+)
+
+if PASSWORD_HASHER:
+    PASSWORD_HASHERS.remove(PASSWORD_HASHER)
+    PASSWORD_HASHERS.insert(0, PASSWORD_HASHER)
+
 # Media files
 MEDIA_ROOT = env.str("MEDIA_ROOT", WEBROOT / "uploads")
 MEDIA_URL = env.str("MEDIA_URL", "/uploads/")

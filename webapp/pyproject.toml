@@ -22,7 +22,8 @@ dependencies = [
   'durationpy ~= 0.9',
   'whitenoise',
   'django-debug-toolbar',
-  'sentry-sdk[django]'
+  'sentry-sdk[django]',
+  'argon2-cffi',
 ]
 
 [project.optional-dependencies]
