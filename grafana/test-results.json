@@ -568,6 +568,25 @@
                 "value": "right"
               }
             ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "D"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "red",
+                  "mode": "fixed"
+                }
+              },
+              {
+                "id": "displayName",
+                "value": "Errors"
+              }
+            ]
           }
         ]
       },
@@ -624,6 +643,15 @@
           "hide": false,
           "query": "from(bucket: v.defaultBucket)\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => \n      r.testid == \"${testid}\" and \n      r.scenario =~ /${scenario:regex}/ and\n      r.group =~ /${group:regex}/ and\n      r.location =~ /${location:regex}/ \n  )\n  |> filter(fn: (r) => r[\"_measurement\"] == \"k6_http_reqs\")\n  |> filter(fn: (r) => r[\"_field\"] == \"value\")\n  |> group(columns: [\"_measurement\"])\n  |> aggregateWindow(every: 1s, fn: sum, createEmpty: false)",
           "refId": "C"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_INFLUXDB}"
+          },
+          "hide": false,
+          "query": "from(bucket: v.defaultBucket)\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => \n      r.testid == \"${testid}\" and \n      r.location =~ /${location:regex}/ \n  )\n  |> filter(fn: (r) => r[\"_measurement\"] == \"k6_http_req_failed\")\n  |> filter(fn: (r) => r[\"_field\"] == \"value\")\n  |> group(columns: [\"_measurement\"])\n  |> aggregateWindow(every: v.windowPeriod, fn: sum, createEmpty: false)",
+          "refId": "D"
         }
       ],
       "type": "timeseries"
