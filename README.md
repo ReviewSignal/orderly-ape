@@ -123,7 +123,7 @@ Install the following tools:
     - Recommended: Use dedicated nodes for tests
     - Configure auto-scaling (recommended: min 3 nodes)
 
-    > **⚠️ Warning**: Ensure your cluster has sufficient resources. Each test run will create additional pods that require CPU and memory allocation.
+    > **⚠️ Warning**: Make sure you check the Kubernetes version at the top to know what version Orderly Ape has been tested up to. Installing newer versions may not work.
 
 4. **Connect to DigitalOcean Cluster**
 
