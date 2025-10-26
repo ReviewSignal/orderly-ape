@@ -1,0 +1,23 @@
+// SPDX-License-Identifier: MIT
+// SPDX-FileCopyrightText: Copyright (c) 2025 ReviewSignal
+
+package entity
+
+templ (tr TestRun) TestRunStatus() {
+	for _, status := range tr.Status.WorkerStatuses {
+		<div>
+			<div><span title="location">{ status.Name }</span> <span class="text-muted-foreground">&mdash; <span title="phase">{ status.Phase }</span></span></div>
+			<div class="mt-1 pl-4 text-xs text-muted-foreground">
+				for _, condition := range status.Conditions {
+					<div class="font-medium">
+						<span>{ condition.Type }:</span>
+						<span class="font-mono">{ condition.Status }</span>
+						if condition.Message != "" {
+							<span class="font-normal">&mdash; { condition.Message }</span>
+						}
+					</div>
+				}
+			</div>
+		</div>
+	}
+}

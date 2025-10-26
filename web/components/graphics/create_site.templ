@@ -1,0 +1,47 @@
+// SPDX-License-Identifier: MIT
+// SPDX-FileCopyrightText: Copyright (c) 2025 ReviewSignal
+
+package graphics
+
+type CreateSiteProps struct {
+	ID         string
+	Class      string
+	Attributes templ.Attributes
+
+	Layers int
+}
+
+templ CreateSite(props ...CreateSiteProps) {
+	{{
+	p := CreateSiteProps{}
+	if len(props) > 0 {
+		p = props[0]
+	}
+	}}
+	<svg id={ p.ID } class={ p.Class } viewBox="0 0 202 131" fill="none" xmlns="http://www.w3.org/2000/svg" { p.Attributes... }>
+		<path d="M56 85L65 80L101 100L137 80L146 85L101 110L56 85Z" fill="#FAFAFB"></path>
+		<path d="M11 80L110 25M20 85L119 30M29 90L128 35M38 95L137 40M47 100L146 45M56 105L155 50M65 110L164 55M74 115L173 60M83 120L182 65M92 125L191 70M11 70L110 125M20 65L119 120M29 60L128 115M38 55L137 110M47 50L146 105M56 45L155 100M65 40L164 95M74 35L173 90M83 30L182 85M92 25L191 80M2 75L101 20L200 75L101 130L2 75Z" stroke="#F4F5F7"></path>
+		<path d="M101 30L20 75L101 120L182 75L101 30Z" stroke="#BCC2C8" strokeDasharray="4 4"></path>
+		if p.Layers > 0 {
+			<g opacity="0.7">
+				<path d="M146 75L101 100V90L146 65V75Z" fill="#297BEF"></path>
+				<path d="M101 40L146 65L101 90L56 65L101 40Z" fill="#CCE1FC"></path>
+				<path d="M56 65L101 90V100L56 75V65Z" fill="#7BAEF5"></path>
+			</g>
+		}
+		if p.Layers > 1 {
+			<g opacity="0.7">
+				<path d="M146 55L101 80V70L146 45V55Z" fill="#297BEF"></path>
+				<path d="M101 20L146 45L101 70L56 45L101 20Z" fill="#CCE1FC"></path>
+				<path d="M56 45L101 70V80L56 55V45Z" fill="#7BAEF5"></path>
+			</g>
+		}
+		if p.Layers > 2 {
+			<g opacity="0.7">
+				<path d="M146 35L101 60V50L146 25V35Z" fill="#297BEF"></path>
+				<path d="M101 0L146 25L101 50L56 25L101 0Z" fill="#CCE1FC"></path>
+				<path d="M56 25L101 50V60L56 35V25Z" fill="#7BAEF5"></path>
+			</g>
+		}
+	</svg>
+}

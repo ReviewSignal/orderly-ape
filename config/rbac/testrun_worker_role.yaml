@@ -1,0 +1,51 @@
+# This ClusterRole grants permissions needed for running k6 tests in worker clusters.
+# It is intended to be bound to service accounts that execute test runs.
+#
+# Permissions include:
+# - Creating Jobs, Secrets, and PodDisruptionBudgets for test execution
+# - Reading Pods and patching Pods/proxy for test coordination
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: orderly-ape
+    app.kubernetes.io/managed-by: kustomize
+  name: testrun-worker-role
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - create
+- apiGroups:
+  - batch
+  resources:
+  - jobs
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - delete
+- apiGroups:
+  - policy
+  resources:
+  - poddisruptionbudgets
+  verbs:
+  - create
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - pods/proxy
+  verbs:
+  - patch

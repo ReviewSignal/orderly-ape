@@ -1,0 +1,75 @@
+hostname: &hostname ape.exmaple.com
+influxdbHostname: &influxdbHostname influxdb.ape.example.com
+
+adminEmail: "admin@ape.reviewsignal.com"
+# This is optional - if not set a random password will be generated on install
+# adminPassword: "change-me-to-a-strong-password"
+
+# Default resource requests/limits for all pods
+# InfluxDB has its own settings below
+resources: &resources
+  limits:
+    cpu: 2
+    memory: 512Mi
+  requests:
+    cpu: 250m
+    memory: 512Mi
+
+### DO NOT MODIFY BELLOW THIS LINE UNLESS YOU KNOW WHAT YOU ARE DOING ###
+
+podTemplate: &podTemplate
+  resources: *resources
+
+ingress:
+  enabled: true
+  hosts:
+    - host: *hostname
+
+dex:
+  enabled: true
+  <<: *podTemplate
+  envFrom:
+  - secretRef:
+      name: orderly-ape-dex-env
+  - secretRef:
+      name: orderly-ape-oidc-dex
+    prefix: ORDERLY_APE_
+
+cert-manager:
+  enabled: true
+  <<: *podTemplate
+  webhook:
+    <<: *podTemplate
+  cainjector:
+    <<: *podTemplate
+
+ingress-nginx:
+  enabled: true
+  controller:
+    <<: *podTemplate
+
+grafana:
+  enabled: true
+  <<: *podTemplate
+
+victorialogs:
+  enabled: true
+  server:
+    <<: *podTemplate
+    retentionPeriod: 45d
+  persistence:
+    size: 50Gi
+
+influxdb:
+  enabled: true
+  <<: *podTemplate
+  resources:
+    limits:
+      memory: 4Gi
+    requests:
+      cpu: 2
+      memory: 4Gi
+  persistence:
+    size: 100Gi
+  ingress:
+    hostname: *influxdbHostname

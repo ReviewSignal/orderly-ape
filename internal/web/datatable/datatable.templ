@@ -1,0 +1,716 @@
+// SPDX-License-Identifier: MIT
+// SPDX-FileCopyrightText: Copyright (c) 2025 ReviewSignal
+
+package datatable
+
+import (
+	"fmt"
+	"strings"
+
+	"github.com/ReviewSignal/orderly-ape/web/components/templui/alert"
+	"github.com/ReviewSignal/orderly-ape/web/components/templui/button"
+	"github.com/ReviewSignal/orderly-ape/web/components/templui/dialog"
+	"github.com/ReviewSignal/orderly-ape/web/components/templui/dropdown"
+	"github.com/ReviewSignal/orderly-ape/web/components/templui/form"
+	"github.com/ReviewSignal/orderly-ape/web/components/templui/icon"
+	"github.com/ReviewSignal/orderly-ape/web/components/templui/input"
+	"github.com/ReviewSignal/orderly-ape/web/components/templui/pagination"
+	"github.com/ReviewSignal/orderly-ape/web/components/templui/sheet"
+	"github.com/ReviewSignal/orderly-ape/web/components/templui/table"
+	"github.com/ReviewSignal/orderly-ape/web/components/templui/tooltip"
+	"github.com/ReviewSignal/orderly-ape/web/layouts"
+	"github.com/ReviewSignal/orderly-ape/web/utils"
+	"github.com/ReviewSignal/orderly-ape/web/utils/url"
+)
+
+type DatatableProps[T Entry] struct {
+	props
+	Columns    Columns
+	Items      []ListItemProps[T]
+	HasActions bool
+	Paginator  *DataPaginator
+	Message    *Message
+}
+
+templ Datatable[T Entry](props DatatableProps[T]) {
+	if props.Message != nil {
+		<div class="w-full max-w-xl">
+			@alert.Alert(alert.Props{Variant: props.Message.Variant}) {
+				@icon.TriangleAlert(icon.Props{Size: 16})
+				@alert.Title() {
+					{ props.Message.Title }
+				}
+				@alert.Description() {
+					{ props.Message.Description }
+				}
+			}
+		</div>
+	}
+	<div class="w-full overflow-x-auto rounded-radius border border-outline dark:border-outline-dark">
+		if props.Items != nil {
+			@table.Table(table.Props{Class: "w-full text-left text-sm text-on-surface dark:text-on-surface-dark"}) {
+				@table.Header(table.HeaderProps{Class: "border-b border-outline bg-surface-alt text-on-surface-strong dark:border-outline-dark dark:bg-surface-dark-alt dark:text-on-surface-dark-strong"}) {
+					@table.Row() {
+						for _, col := range props.Columns {
+							{{ headProps := col.HeadProps }}
+							{{ headProps.Class = utils.TwMerge(headProps.Class, "p-4") }}
+							@table.Head(headProps) {
+								{ col.Name }
+							}
+						}
+						if props.HasActions {
+							@table.Head(table.HeadProps{
+								Attributes: templ.Attributes{
+									"width": "1%",
+								},
+								Class: "p-4 text-right",
+							}) {
+								Actions
+							}
+						}
+					}
+				}
+				@table.Body(table.BodyProps{Class: "divide-y divide-outline dark:divide-outline-dark"}) {
+					for _, item := range props.Items {
+						{{ o := item.Object }}
+						@table.Row() {
+							for _, col := range props.Columns {
+								{{ component, props := col.component(item.Object) }}
+								{{ props.Class = utils.TwMerge(props.Class, "p-4") }}
+								@table.Cell(props) {
+									@component
+								}
+							}
+							if len(item.Actions) > 0 {
+								@table.Cell(table.CellProps{Class: "p-4 text-right"}) {
+									@dropdown.Dropdown() {
+										@dropdown.Trigger() {
+											@button.Button(button.Props{
+												Variant: button.VariantGhost,
+											}) {
+												@icon.EllipsisVertical()
+											}
+										}
+										@dropdown.Content(dropdown.ContentProps{
+											// Width: "w-5xs",
+										}) {
+											for _, action := range item.Actions {
+												{{ formID := "form-" + action.Name + "-" + string(o.GetUID()) }}
+												{{ drawerID := "drawer-" + action.Name + "-" + string(o.GetUID()) }}
+												{{ modalID := "modal-confirm-" + action.Name + "-" + string(o.GetUID()) }}
+												<form action="" method="post" id={ formID } class="hidden">
+													<input type="hidden" name="object" value={ o.NamespacedName() }/>
+												</form>
+												if action.Confirm != nil {
+													@dialog.Trigger(dialog.TriggerProps{
+														For: modalID,
+													}) {
+														@dropdown.Item(dropdown.ItemProps{
+															Class: utils.TwMerge("cursor-pointer", utils.If(action.Destructive, "text-danger")),
+														}) {
+															<span class="flex items-center">
+																@action.Icon(icon.Props{Size: 16, Class: "mr-2"})
+																{ action.Label }
+															</span>
+														}
+													}
+												} else if action.InlineForm != nil {
+													@sheet.Trigger(sheet.TriggerProps{
+														For: drawerID,
+													}) {
+														@dropdown.Item(dropdown.ItemProps{
+															Class: utils.TwMerge("cursor-pointer", utils.If(action.Destructive, "text-danger")),
+															Href:  action.Href,
+														}) {
+															<span class="flex items-center">
+																@action.Icon(icon.Props{Size: 16, Class: "mr-2"})
+																{ action.Label }
+															</span>
+														}
+													}
+												} else {
+													@dropdown.Item(dropdown.ItemProps{
+														Class:    utils.TwMerge("cursor-pointer", utils.If(action.Destructive, "text-danger")),
+														Href:     action.Href,
+														Target:   action.Target,
+														Disabled: action.Disabled,
+														Attributes: templ.Attributes{
+															"name":  "action",
+															"value": action.Name,
+															"type":  "submit",
+															"form":  formID,
+														},
+													}) {
+														<span class="flex items-center">
+															@action.Icon(icon.Props{Size: 16, Class: "mr-2"})
+															{ action.Label }
+															if action.Target == "_blank" {
+																@icon.ExternalLink(icon.Props{Class: "size-3 ml-1"})
+															}
+														</span>
+													}
+												}
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		} else {
+			{ children... }
+		}
+	</div>
+	if props.Items != nil && props.Paginator != nil {
+		<div class="flex justify-center">
+			{{ paginator := pagination.CreatePagination(props.Paginator.CurrentPage, props.Paginator.TotalPages, 3) }}
+			@pagination.Pagination() {
+				@pagination.Content() {
+					@pagination.Item() {
+						@pagination.Previous(pagination.PreviousProps{
+							Href:     utils.PaginationURL(url.RequestURL(ctx).String(), "page", paginator.CurrentPage-1),
+							Disabled: !paginator.HasPrevious,
+						})
+					}
+					// First page with ellipsis if needed
+					if paginator.Pages[0] > 1 {
+						@pagination.Item() {
+							@pagination.Link(pagination.LinkProps{
+								Href: utils.PaginationURL(url.RequestURL(ctx).String(), "page", 1),
+							}) {
+								1
+							}
+						}
+						if paginator.Pages[0] > 2 {
+							@pagination.Item() {
+								@pagination.Ellipsis()
+							}
+						}
+					}
+					// Visible pages
+					for _, page := range paginator.Pages {
+						@pagination.Item() {
+							@pagination.Link(pagination.LinkProps{
+								Href:     utils.PaginationURL(url.RequestURL(ctx).String(), "page", page),
+								IsActive: page == paginator.CurrentPage,
+							}) {
+								{ fmt.Sprint(page) }
+							}
+						}
+					}
+					// Last page with ellipsis if needed
+					if paginator.Pages[len(paginator.Pages)-1] < paginator.TotalPages {
+						if paginator.Pages[len(paginator.Pages)-1] < paginator.TotalPages-1 {
+							@pagination.Item() {
+								@pagination.Ellipsis()
+							}
+						}
+						@pagination.Item() {
+							@pagination.Link(pagination.LinkProps{
+								Href: utils.PaginationURL(url.RequestURL(ctx).String(), "page", paginator.TotalPages),
+							}) {
+								{ fmt.Sprint(paginator.TotalPages) }
+							}
+						}
+					}
+					@pagination.Item() {
+						@pagination.Next(pagination.NextProps{
+							Href:     utils.PaginationURL(url.RequestURL(ctx).String(), "page", paginator.CurrentPage+1),
+							Disabled: !paginator.HasNext,
+						})
+					}
+				}
+			}
+		</div>
+		if props.HasActions && props.Items != nil {
+			for _, item := range props.Items {
+				for _, action := range item.Actions {
+					if action.Confirm == nil {
+						{{ continue }}
+					}
+					{{ id := "form-" + action.Name + "-" + string(item.Object.GetUID()) }}
+					@action.Confirm(item.Object, dialog.Props{
+						ID: "modal-confirm-" + action.Name + "-" + string(item.Object.GetUID()),
+						Attributes: templ.Attributes{
+							"data-action":         action.Name,
+							"data-action-form-id": id,
+						},
+					})
+				}
+				for _, action := range item.Actions {
+					if action.InlineForm == nil {
+						{{ continue }}
+					}
+					{{ drawerID := "drawer-" + action.Name + "-" + string(item.Object.GetUID()) }}
+					{{ formID := utils.RandomID() }}
+					@sheet.Content(sheet.ContentProps{
+						ID:   drawerID,
+						Side: sheet.SideRight,
+						Open: action.InlineForm.HasErrors(),
+					}) {
+						@sheet.Header() {
+							@sheet.Title() {
+								{ action.Label } { DisplayName(item.Object) }
+							}
+						}
+						<div class="relative overflow-y-auto">
+							<div class="px-4">
+								<form class="space-y-4" id={ formID } action="" method="post">
+									@action.InlineForm
+									<input type="hidden" name="object" value={ item.Object.NamespacedName() }/>
+								</form>
+							</div>
+							@sheet.Footer() {
+								@sheet.Close(sheet.CloseProps{
+									For: drawerID,
+								}) {
+									@button.Button(button.Props{
+										Variant: button.VariantOutline,
+									}) {
+										Cancel
+									}
+								}
+								@button.Button(button.Props{
+									Type: button.TypeSubmit,
+									Attributes: templ.Attributes{
+										"form":  formID,
+										"name":  "action",
+										"value": action.Name,
+									},
+								}) {
+									{ action.Label }
+								}
+							}
+						</div>
+					}
+				}
+			}
+		}
+	}
+}
+
+templ CreateView[T Entry](props CreateProps[T]) {
+	@layouts.Base() {
+		<div class="flex flex-col 2xl:grid grid-cols-[1fr_var(--container-3xl)_1fr] gap-4 px-4">
+			<h1 class="py-4 font-bold text-3xl">{ props.Title }</h1>
+			<div class="mx-auto mt-4 w-full max-w-3xl">
+				<form class=" space-y-4" action="" method="post">
+					@props.Form
+					@form.Item(form.ItemProps{
+						Class: "flex flex-row-reverse",
+					}) {
+						@button.Button(button.Props{
+							Type: button.TypeSubmit,
+						}) {
+							Create
+						}
+					}
+				</form>
+			</div>
+		</div>
+	}
+}
+
+templ EditView[T Entry](props EditProps[T]) {
+	@layouts.Base() {
+		<div class="flex flex-col 2xl:grid grid-cols-[1fr_var(--container-3xl)_1fr] gap-4 px-4">
+			<h1 class="py-4 font-bold text-3xl">{ props.Title }</h1>
+			<div class="mx-auto mt-4 w-full max-w-3xl">
+				<form class=" space-y-4" action="" method="post">
+					@props.Form
+					@form.Item(form.ItemProps{
+						Class: "flex flex-row-reverse",
+					}) {
+						@button.Button(button.Props{
+							Type: button.TypeSubmit,
+						}) {
+							Save
+						}
+					}
+				</form>
+			</div>
+		</div>
+	}
+}
+
+templ ListView[T Entry](props ListProps[T]) {
+	@layouts.Base() {
+		<div class="flex flex-col gap-4 px-4">
+			<div class="py-4 flex gap-x-4">
+				<h1 class="font-bold text-3xl">{ props.Title }</h1>
+				if props.InlineCreateForm != nil {
+					@sheet.Trigger(sheet.TriggerProps{
+						For: "inline-create-drawer",
+					}) {
+						@button.Button(button.Props{
+							Href:    "#",
+							Size:    button.SizeIcon,
+							Variant: button.VariantOutline,
+						}) {
+							<span class="sr-only">Create</span>
+							@icon.Plus(icon.Props{
+								Class: "size-4",
+							})
+						}
+					}
+				} else if props.CreateURL != "" {
+					@button.Button(button.Props{
+						Href:    props.CreateURL,
+						Size:    button.SizeIcon,
+						Variant: button.VariantOutline,
+					}) {
+						<span class="sr-only">Create</span>
+						@icon.Plus(icon.Props{
+							Class: "size-4",
+						})
+					}
+				}
+			</div>
+			<div class="w-full flex flex-nowrap items-center gap-3 p-3 bg-surface-alt text-on-surface-strong dark:bg-surface-dark-alt dark:text-on-surface-dark-strong rounded-radius border border-outline dark:border-outline-dark">
+				<form class="mr-auto" action="" method="get">
+					@form.ItemFlex(form.ItemProps{
+						Class: "relative",
+					}) {
+						@icon.Search(icon.Props{
+							Class: "size-4 shrink-0 absolute left-3 z-10",
+						})
+						@input.Input(input.Props{
+							ID:          "search",
+							Class:       "pl-10",
+							Name:        SearchParam,
+							Value:       props.SearchTerm(),
+							Type:        input.TypeSearch,
+							Placeholder: "Search",
+						})
+						@button.Button(button.Props{
+							Variant: button.VariantAlt,
+						}) {
+							Search
+						}
+					}
+				</form>
+			</div>
+			@Datatable(DatatableProps[T]{
+				props:      props.props,
+				Columns:    props.Columns,
+				Items:      props.Items,
+				Paginator:  props.Paginator,
+				HasActions: props.HasActions,
+				Message:    props.Message,
+			}) {
+				<div class="flex items-center justify-center h-32">
+					No results found.
+				</div>
+			}
+			if props.InlineCreateForm != nil {
+				@sheet.Content(sheet.ContentProps{
+					ID:   "inline-create-drawer",
+					Side: sheet.SideRight,
+					Open: props.InlineCreateForm.HasErrors(),
+				}) {
+					@sheet.Header() {
+						@sheet.Title() {
+							{ props.InlineCreateTitle }
+						}
+						if props.InlineCreateDescription != "" {
+							@sheet.Description() {
+								{ props.InlineCreateDescription }
+							}
+						}
+					}
+					<div class="relative overflow-y-auto">
+						<div class="px-4">
+							<form class="space-y-4" id="create-form" action={ props.CreateURL } method="post">
+								@props.InlineCreateForm
+							</form>
+						</div>
+						@sheet.Footer() {
+							@sheet.Close(sheet.CloseProps{
+								For: "inline-create-drawer",
+							}) {
+								@button.Button(button.Props{
+									Variant: button.VariantOutline,
+								}) {
+									Cancel
+								}
+							}
+							@button.Button(button.Props{
+								Type: button.TypeSubmit,
+								Attributes: templ.Attributes{
+									"form":  "create-form",
+									"name":  "action",
+									"value": "create",
+								},
+							}) {
+								Create
+							}
+						}
+					</div>
+				}
+			}
+		</div>
+	}
+}
+
+templ ConfirmDelete(obj Entry, props ...dialog.Props) {
+	@ConfirmDeleteModal(obj, props...) {
+		This action cannot be undone. This will permanently delete { strings.ToLower(VerboseName(obj)) }
+		<strong>
+			{ DisplayName(obj) }
+		</strong>.
+		<div class="mt-4 text-xs text-muted-foreground">
+			Will delete the following Kubernetes object <code>{ obj.GetObjectKind().GroupVersionKind().String() }</code>
+			<code>{ fmt.Sprintf("%s/%s", utils.IfElse( obj.GetObjectKind().GroupVersionKind().Kind == "Namespace", "", obj.GetNamespace() ), obj.GetName() ) }</code>
+		</div>
+	}
+}
+
+templ ConfirmDeleteModal(obj Entry, props ...dialog.Props) {
+	{{ var p dialog.Props }}
+	if len(props) > 0 {
+		{{ p = props[0] }}
+	}
+	if p.Class == "" {
+		{{ p.Class = "max-w-md" }}
+	}
+	@dialog.Dialog(p) {
+		@dialog.Content() {
+			@dialog.Header() {
+				Are you absolutely sure?
+			}
+			<div>
+				{ children... }
+			</div>
+			@dialog.Footer() {
+				<div class="flex gap-2">
+					@dialog.Close(dialog.CloseProps{
+						For: p.ID,
+					}) {
+						@button.Button(button.Props{
+							Variant: button.VariantGhost,
+						}) {
+							Cancel
+						}
+					}
+					@button.Button(button.Props{
+						Variant: button.VariantDestructive,
+						Type:    button.TypeSubmit,
+						Attributes: templ.Attributes{
+							"name":  "action",
+							"value": p.Attributes["data-action"],
+							"form":  p.Attributes["data-action-form-id"],
+						},
+					}) {
+						Delete
+					}
+				</div>
+			}
+		}
+	}
+}
+
+func getObjectLink(obj Entry) templ.SafeURL {
+	if obj == nil {
+		return templ.SafeURL("about:invalid#ObjectIsNil")
+	}
+	if link, ok := obj.(interface{ ObjectLink() templ.SafeURL }); ok {
+		return link.ObjectLink()
+	}
+	return ""
+}
+
+type Status struct {
+	// A custom icon function to represent the status
+	// if not provided, a default icon based on the object's deletion status is used
+	Icon  func(...icon.Props) templ.Component
+	Title string
+
+	// Description is a short text displayed below the Title
+	// if Description or DescriptionComponent is not provided, the Title displayed as title attribute
+	Description string
+	// DescriptionComponent is displayed inside a tooltip, giving more details about the status
+	// if not provided, Description is used as plain text
+	DescriptionComponent func() templ.Component
+}
+
+var StatusIconPending = func(props ...icon.Props) templ.Component {
+	return icon.LoaderCircle(icon.Props{
+		StrokeWidth: "2.5",
+		Class:       "size-4 shrink-0 text-info animate-spin",
+	})
+}
+
+var StatusIconRunning = func(props ...icon.Props) templ.Component {
+	return icon.LoaderCircle(icon.Props{
+		StrokeWidth: "2.5",
+		Class:       "size-4 shrink-0 text-success animate-spin",
+	})
+}
+
+var StatusIconCanceling = func(props ...icon.Props) templ.Component {
+	return icon.LoaderCircle(icon.Props{
+		StrokeWidth: "2.5",
+		Class:       "size-4 shrink-0 text-muted-foreground animate-spin",
+	})
+}
+
+var StatusIconFailing = func(props ...icon.Props) templ.Component {
+	return icon.LoaderCircle(icon.Props{
+		StrokeWidth: "2.5",
+		Class:       "size-4 shrink-0 text-danger animate-spin",
+	})
+}
+
+var StatusIconReady = func(props ...icon.Props) templ.Component {
+	return icon.CircleSmall(icon.Props{
+		StrokeWidth: "2.5",
+		Fill:        "currentColor",
+		Class:       "size-4 shrink-0 text-success",
+	})
+}
+
+var StatusIconCompleted = func(props ...icon.Props) templ.Component {
+	return icon.CircleSmall(icon.Props{
+		StrokeWidth: "2.5",
+		Fill:        "currentColor",
+		Class:       "size-4 shrink-0 text-info",
+	})
+}
+
+var StatusIconDeleteing = func(props ...icon.Props) templ.Component {
+	return icon.Trash2(icon.Props{
+		StrokeWidth: "2.5",
+		Class:       "size-4 shrink-0 text-slate-500 animate-pulse",
+	})
+}
+
+var StatusIconUnknown = func(props ...icon.Props) templ.Component {
+	return icon.CircleQuestionMark(icon.Props{
+		StrokeWidth: "2.5",
+		Class:       "size-4 shrink-0 text-muted-foreground",
+	})
+}
+
+var StatusIconCanceled = func(props ...icon.Props) templ.Component {
+	return icon.CircleSlash(icon.Props{
+		StrokeWidth: "2.5",
+		Class:       "size-4 shrink-0 text-muted-foreground",
+	})
+}
+
+var StatusIconFailed = func(props ...icon.Props) templ.Component {
+	return icon.CircleX(icon.Props{
+		StrokeWidth: "2.5",
+		Class:       "size-4 shrink-0 text-danger",
+	})
+}
+
+var StatusIconDraft = func(props ...icon.Props) templ.Component {
+	return icon.Pen(icon.Props{
+		StrokeWidth: "2.5",
+		Class:       "size-4 shrink-0 text-muted-foreground",
+	})
+}
+
+var StatusIconArchived = func(props ...icon.Props) templ.Component {
+	return icon.Box(icon.Props{
+		StrokeWidth: "2.5",
+		Class:       "size-4 shrink-0 text-muted-foreground",
+	})
+}
+
+func objectStatus(o Entry) Status {
+	if statusProvider, ok := o.(interface{ EntryStatus() Status }); ok {
+		return statusProvider.EntryStatus()
+	}
+	verboseName := VerboseName(o)
+	if o.GetDeletionTimestamp().IsZero() {
+		return Status{
+			Icon:  StatusIconReady,
+			Title: fmt.Sprintf("%s is active", verboseName),
+		}
+	} else {
+		return Status{
+			Icon:  StatusIconDeleteing,
+			Title: fmt.Sprintf("%s is being deleted", verboseName),
+		}
+	}
+}
+
+templ objectStatusIcon(o Entry) {
+	{{ status := objectStatus(o) }}
+	{{ id := utils.RandomID() }}
+	if status.DescriptionComponent == nil && status.Description == "" {
+		<span title={ status.Title }>
+			@status.Icon()
+		</span>
+	} else {
+		@tooltip.Trigger(tooltip.TriggerProps{
+			For: "tooltip-" + id,
+		}) {
+			@status.Icon()
+		}
+		@tooltip.Tooltip() {
+			@tooltip.Content(tooltip.ContentProps{
+				ID:            "tooltip-" + id,
+				Position:      tooltip.PositionTop,
+				HoverDelay:    500,
+				HoverOutDelay: 100,
+			}) {
+				<div class="text-sm max-w-sm space-y-2 my-1">
+					if status.DescriptionComponent != nil {
+						@status.DescriptionComponent()
+					} else {
+						{ status.Description }
+					}
+				</div>
+			}
+		}
+	}
+}
+
+templ ObjectCellInlineEdit(o Entry) {
+	<div class="inline-flex items-center gap-2">
+		@objectStatusIcon(o)
+		<span>
+			{{ drawerID := "drawer-edit-" + string(o.GetUID()) }}
+			@sheet.Trigger(sheet.TriggerProps{
+				For: drawerID,
+			}) {
+				@button.Button(button.Props{
+					Href:    "#",
+					Variant: button.VariantLink,
+					Size:    button.SizeIcon,
+					Class:   "inline-block size-auto text-on-surface-strong dark:text-on-surface-dark-strong",
+				}) {
+					{ utils.IfElse(DisplayName(o) != o.GetName(), DisplayName(o), o.GetName()) }
+				}
+			}
+			if DisplayName(o) != o.GetName() {
+				&nbsp;&mdash;&nbsp;<span class="text-muted-foreground">{ o.GetName() }</span>
+			}
+		</span>
+	</div>
+	{ children... }
+}
+
+templ ObjectCellLink(o Entry) {
+	{{ link := getObjectLink(o) }}
+	@objectStatusIcon(o)
+	<span>
+		@button.Button(button.Props{
+			Href:    string(link),
+			Size:    button.SizeIcon,
+			Variant: button.VariantLink,
+			Class:   "inline text-on-surface-strong dark:text-on-surface-dark-strong",
+		}) {
+			{ utils.IfElse(DisplayName(o) != o.GetName(), DisplayName(o), o.GetName()) }
+		}
+		if DisplayName(o) != o.GetName() {
+			&nbsp;&mdash;&nbsp;<span class="text-muted-foreground">{ o.GetName() }</span>
+		}
+	</span>
+	{ children... }
+}

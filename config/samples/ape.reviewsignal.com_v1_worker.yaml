@@ -1,0 +1,9 @@
+apiVersion: ape.reviewsignal.com/v1
+kind: Worker
+metadata:
+  labels:
+    app.kubernetes.io/name: orderly-ape
+    app.kubernetes.io/managed-by: kustomize
+  name: worker-sample
+spec:
+  # TODO(user): Add fields here

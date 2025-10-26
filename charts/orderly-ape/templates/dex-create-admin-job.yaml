@@ -1,0 +1,42 @@
+{{- if .Values.dex.enabled }}
+---
+# Job to create Dex admin user
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "orderly-ape.fullname" . }}-dex-admin
+  labels:
+    {{- include "orderly-ape.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": post-install
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  template:
+    metadata:
+      name: {{ include "orderly-ape.fullname" . }}-dex-admin
+    spec:
+      restartPolicy: Never
+      serviceAccountName: {{ include "orderly-ape.serviceAccountName" . }}
+      containers:
+      - name: create-admin
+        image: bitpoke/toolbox:alpine-3.22.2
+        command:
+        - /bin/bash
+        - -c
+        - {{ .Files.Get "files/dex-create-admin.sh" | quote }}
+        env:
+        - name: ADMIN_EMAIL
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "orderly-ape.fullname" . }}-admin
+              key: ADMIN_EMAIL
+        - name: ADMIN_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "orderly-ape.fullname" . }}-admin
+              key: ADMIN_PASSWORD
+        - name: DEX_SERVICE
+          value: {{ include "dex.fullname" .Subcharts.dex | quote }}
+        - name: DEX_GRPC_PORT
+          value: "5557"
+{{- end }}

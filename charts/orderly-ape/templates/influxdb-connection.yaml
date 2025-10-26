@@ -1,0 +1,22 @@
+{{- if .Values.influxdb.enabled }}
+apiVersion: ape.reviewsignal.com/v1
+kind: InfluxDB
+metadata:
+  name: {{ include "orderly-ape.fullname" . }}
+  labels:
+    {{- include "orderly-ape.labels" . | nindent 4 }}
+  annotations:
+    ape.reviewsignal.com/display-name: Orderly Ape
+    "helm.sh/hook": post-install
+    "helm.sh/resource-policy": keep
+spec:
+  address:
+    value: {{ include "orderly-ape.influxdbAddress" . | quote }}
+  organization:
+    value: {{ .Values.influxdb.adminUser.organization | quote }}
+  token:
+    valueFrom:
+      secretKeyRef:
+        key: admin-token
+        name: {{ include "influxdb.fullname" .Subcharts.influxdb }}-auth
+{{- end }}

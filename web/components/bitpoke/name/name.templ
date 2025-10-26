@@ -1,0 +1,58 @@
+// SPDX-License-Identifier: MIT
+// SPDX-FileCopyrightText: Copyright (c) 2025 ReviewSignal
+
+package name
+
+import (
+	"github.com/ReviewSignal/orderly-ape/internal/web/forms"
+	"github.com/ReviewSignal/orderly-ape/web/components/templui/button"
+	"github.com/ReviewSignal/orderly-ape/web/components/templui/form"
+	"github.com/ReviewSignal/orderly-ape/web/utils"
+)
+
+templ Section(s *forms.Section, _ ...forms.HTMLBaseProps) {
+	<div class="space-y-2" data-name-section>
+		@s.Fields.ByName("displayName").Component(forms.HTMLBaseProps{}) {
+			@s.Fields.ByName("displayName").Widget(forms.HTMLBaseProps{
+				Attributes: templ.Attributes{
+					"data-name-display-input": "",
+				},
+			})
+			@form.Description(form.DescriptionProps{
+				Attributes: templ.Attributes{
+					"data-name-description": "",
+				},
+			}) {
+				<span data-name-display-text style="display: none;">
+					Resource name: <span class="font-medium" data-name-value></span>. It cannot be changed later. &nbsp;
+					@button.Button(button.Props{
+						Variant: button.VariantLink,
+						Class:   "inline p-0",
+						Href:    "#",
+						Attributes: templ.Attributes{
+							"data-name-edit-button": "",
+						},
+					}) {
+						Edit
+					}
+				</span>
+			}
+		}
+		@s.Fields.ByName("name").Component(forms.HTMLBaseProps{
+			Attributes: templ.Attributes{
+				"data-name-field-wrapper": "",
+				"style":                   "display: none;",
+			},
+		}) {
+			@s.Fields.ByName("name").Widget(forms.HTMLBaseProps{
+				Attributes: templ.Attributes{
+					"data-name-input": "",
+				},
+			})
+		}
+	</div>
+}
+
+templ Script() {
+	<script defer nonce={ templ.GetNonce(ctx) } src={ "/public/js/name.min.js?v=" + utils.ScriptVersion }></script>
+}

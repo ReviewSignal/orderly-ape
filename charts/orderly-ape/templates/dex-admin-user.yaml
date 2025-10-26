@@ -1,0 +1,11 @@
+{{- if .Values.dex.enabled }}
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ include "orderly-ape.fullname" . }}-admin
+  labels:
+    {{- include "orderly-ape.labels" . | nindent 4 }}
+data:
+  ADMIN_EMAIL: {{ include "orderly-ape.adminEmail" . | b64enc }}
+  ADMIN_PASSWORD: {{ include "orderly-ape.adminPassword" . | b64enc }}
+{{- end }}

@@ -1,0 +1,1983 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: orderly-ape
+    control-plane: controller-manager
+  name: orderly-ape-system
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.19.1-0.20250829124250-5d6015328208
+  name: influxdbs.ape.reviewsignal.com
+spec:
+  group: ape.reviewsignal.com
+  names:
+    kind: InfluxDB
+    listKind: InfluxDBList
+    plural: influxdbs
+    singular: influxdb
+  scope: Namespaced
+  versions:
+  - name: v1
+    schema:
+      openAPIV3Schema:
+        description: InfluxDB is the Schema for the influxdbs API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: spec defines the desired state of InfluxDB
+            properties:
+              address:
+                description: |-
+                  Address is the address of the InfluxDB server, and must be accesible the from cluster,
+                  as well as from the Worker clusters.
+                  It can be either a hostname or an IP address, and can include port
+                properties:
+                  value:
+                    type: string
+                  valueFrom:
+                    properties:
+                      configMapKeyRef:
+                        description: Selects a key from a ConfigMap.
+                        properties:
+                          key:
+                            description: The key to select.
+                            type: string
+                          name:
+                            default: ""
+                            description: |-
+                              Name of the referent.
+                              This field is effectively required, but due to backwards compatibility is
+                              allowed to be empty. Instances of this type with an empty value here are
+                              almost certainly wrong.
+                              More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                            type: string
+                          optional:
+                            description: Specify whether the ConfigMap or its key
+                              must be defined
+                            type: boolean
+                        required:
+                        - key
+                        type: object
+                        x-kubernetes-map-type: atomic
+                      secretKeyRef:
+                        description: SecretKeySelector selects a key of a Secret.
+                        properties:
+                          key:
+                            description: The key of the secret to select from.  Must
+                              be a valid secret key.
+                            type: string
+                          name:
+                            default: ""
+                            description: |-
+                              Name of the referent.
+                              This field is effectively required, but due to backwards compatibility is
+                              allowed to be empty. Instances of this type with an empty value here are
+                              almost certainly wrong.
+                              More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                            type: string
+                          optional:
+                            description: Specify whether the Secret or its key must
+                              be defined
+                            type: boolean
+                        required:
+                        - key
+                        type: object
+                        x-kubernetes-map-type: atomic
+                    type: object
+                type: object
+              organization:
+                description: |-
+                  Organization is the organization name in InfluxDB for which
+                  tokens will be created.
+                properties:
+                  value:
+                    type: string
+                  valueFrom:
+                    properties:
+                      configMapKeyRef:
+                        description: Selects a key from a ConfigMap.
+                        properties:
+                          key:
+                            description: The key to select.
+                            type: string
+                          name:
+                            default: ""
+                            description: |-
+                              Name of the referent.
+                              This field is effectively required, but due to backwards compatibility is
+                              allowed to be empty. Instances of this type with an empty value here are
+                              almost certainly wrong.
+                              More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                            type: string
+                          optional:
+                            description: Specify whether the ConfigMap or its key
+                              must be defined
+                            type: boolean
+                        required:
+                        - key
+                        type: object
+                        x-kubernetes-map-type: atomic
+                      secretKeyRef:
+                        description: SecretKeySelector selects a key of a Secret.
+                        properties:
+                          key:
+                            description: The key of the secret to select from.  Must
+                              be a valid secret key.
+                            type: string
+                          name:
+                            default: ""
+                            description: |-
+                              Name of the referent.
+                              This field is effectively required, but due to backwards compatibility is
+                              allowed to be empty. Instances of this type with an empty value here are
+                              almost certainly wrong.
+                              More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                            type: string
+                          optional:
+                            description: Specify whether the Secret or its key must
+                              be defined
+                            type: boolean
+                        required:
+                        - key
+                        type: object
+                        x-kubernetes-map-type: atomic
+                    type: object
+                type: object
+              token:
+                description: |-
+                  Token is the management token for InfluxDB.
+                  It's main purpose is to create tokens for each test run.
+                properties:
+                  value:
+                    type: string
+                  valueFrom:
+                    properties:
+                      configMapKeyRef:
+                        description: Selects a key from a ConfigMap.
+                        properties:
+                          key:
+                            description: The key to select.
+                            type: string
+                          name:
+                            default: ""
+                            description: |-
+                              Name of the referent.
+                              This field is effectively required, but due to backwards compatibility is
+                              allowed to be empty. Instances of this type with an empty value here are
+                              almost certainly wrong.
+                              More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                            type: string
+                          optional:
+                            description: Specify whether the ConfigMap or its key
+                              must be defined
+                            type: boolean
+                        required:
+                        - key
+                        type: object
+                        x-kubernetes-map-type: atomic
+                      secretKeyRef:
+                        description: SecretKeySelector selects a key of a Secret.
+                        properties:
+                          key:
+                            description: The key of the secret to select from.  Must
+                              be a valid secret key.
+                            type: string
+                          name:
+                            default: ""
+                            description: |-
+                              Name of the referent.
+                              This field is effectively required, but due to backwards compatibility is
+                              allowed to be empty. Instances of this type with an empty value here are
+                              almost certainly wrong.
+                              More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                            type: string
+                          optional:
+                            description: Specify whether the Secret or its key must
+                              be defined
+                            type: boolean
+                        required:
+                        - key
+                        type: object
+                        x-kubernetes-map-type: atomic
+                    type: object
+                type: object
+            required:
+            - address
+            - organization
+            - token
+            type: object
+          status:
+            description: status defines the observed state of InfluxDB
+            properties:
+              buckets:
+                description: |-
+                  Buckets is a list of existing buckets in the InfluxDB server
+                  for the specified organization.
+                items:
+                  type: string
+                type: array
+              conditions:
+                description: |-
+                  conditions represent the current state of the InfluxDB resource.
+                  Each condition has a unique type and reflects the status of a specific aspect of the resource.
+
+                  The status of each condition is one of True, False, or Unknown.
+                items:
+                  description: Condition contains details for one aspect of the current
+                    state of this API Resource.
+                  properties:
+                    lastTransitionTime:
+                      description: |-
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: |-
+                        message is a human readable message indicating details about the transition.
+                        This may be an empty string.
+                      maxLength: 32768
+                      type: string
+                    observedGeneration:
+                      description: |-
+                        observedGeneration represents the .metadata.generation that the condition was set based upon.
+                        For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                        with respect to the current state of the instance.
+                      format: int64
+                      minimum: 0
+                      type: integer
+                    reason:
+                      description: |-
+                        reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                        Producers of specific condition types may define expected values and meanings for this field,
+                        and whether the values are considered a guaranteed API.
+                        The value should be a CamelCase string.
+                        This field may not be empty.
+                      maxLength: 1024
+                      minLength: 1
+                      pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                      type: string
+                    status:
+                      description: status of the condition, one of True, False, Unknown.
+                      enum:
+                      - "True"
+                      - "False"
+                      - Unknown
+                      type: string
+                    type:
+                      description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                      maxLength: 316
+                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+                x-kubernetes-list-map-keys:
+                - type
+                x-kubernetes-list-type: map
+              organizationID:
+                description: OrganizationID is the ID of the organization in InfluxDB
+                type: string
+              serverStartTime:
+                description: ServerStartTime is the time when the InfluxDB server
+                  was last started (uptime)
+                format: date-time
+                type: string
+              version:
+                description: Version is the InfluxDB server version
+                type: string
+            type: object
+        required:
+        - spec
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.19.1-0.20250829124250-5d6015328208
+  name: testruns.ape.reviewsignal.com
+spec:
+  group: ape.reviewsignal.com
+  names:
+    kind: TestRun
+    listKind: TestRunList
+    plural: testruns
+    singular: testrun
+  scope: Namespaced
+  versions:
+  - name: v1
+    schema:
+      openAPIV3Schema:
+        description: TestRun is the Schema for the testruns API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: spec defines the desired state of TestRun
+            properties:
+              envVars:
+                description: |-
+                  EnvVars is a list of environment variables to set for the test run.
+                  They are merged with the environment variables defined in the TestScenario.
+                items:
+                  properties:
+                    name:
+                      description: |-
+                        Name of the environment variable. Must be a C_IDENTIFIER.
+                        It cannot be TARGET, or start with K6_ or APE_ as these are reserved for the test scenario and system.
+                      minLength: 1
+                      type: string
+                      x-kubernetes-validations:
+                      - message: Name cannot be TARGET or start with K6_ or APE_ as
+                          these are reserved.
+                        rule: '!matches(self.upperAscii(), ''^(TARGET|K6_.*|APE_.*)$'')'
+                    value:
+                      description: Value of the environment variable.
+                      type: string
+                  required:
+                  - name
+                  type: object
+                maxItems: 24
+                type: array
+                x-kubernetes-list-map-keys:
+                - name
+                x-kubernetes-list-type: map
+              influxdb:
+                description: InfluxDB is a reference to an InfluxDB for storing test
+                  results.
+                properties:
+                  name:
+                    description: name is unique within a namespace to reference an
+                      object resource.
+                    minLength: 1
+                    type: string
+                  namespace:
+                    description: namespace defines the space within which the object
+                      name must be unique.
+                    type: string
+                required:
+                - name
+                - namespace
+                type: object
+                x-kubernetes-map-type: atomic
+              influxdbBucket:
+                description: |-
+                  InfluxDBBucket is the name of the InfluxDB bucket to use for storing test results.
+                  If not specified, the default bucket from the InfluxDB instance will be used.
+                type: string
+              labels:
+                additionalProperties:
+                  type: string
+                description: |-
+                  Labels are test results labels to set for the test run.
+                  They are merged with the labels defined in the TestScenario.
+                maxProperties: 24
+                type: object
+              placementStrategy:
+                default: SpreadOut
+                description: PlacementStrategy is the strategy for placing worker
+                  pods in locations.
+                enum:
+                - SpreadOut
+                - AllowSameNode
+                type: string
+              scenario:
+                description: Scenario is a reference to the TestScenario to run.
+                properties:
+                  name:
+                    description: name is unique within a namespace to reference an
+                      object resource.
+                    minLength: 1
+                    type: string
+                  namespace:
+                    description: namespace defines the space within which the object
+                      name must be unique.
+                    type: string
+                required:
+                - name
+                - namespace
+                type: object
+                x-kubernetes-map-type: atomic
+              state:
+                default: Draft
+                description: |-
+                  State is the desired state of the test run.
+                  Once Canceled, it cannot be changed back to Active or Draft.
+                enum:
+                - Draft
+                - Active
+                - Canceled
+                - Archived
+                minLength: 1
+                type: string
+                x-kubernetes-validations:
+                - message: Only Draft can be started or canceled. Only Active can
+                    only be canceled.
+                  rule: oldSelf == 'Draft' || self == 'Draft' || self == 'Archived'
+                    || oldSelf == self || oldSelf == 'Active' && self == 'Canceled'
+              target:
+                description: |-
+                  Target is the test run target.
+                  It get passed to the test scenario as the TARGET environment variable.
+                minLength: 1
+                type: string
+              workers:
+                description: |-
+                  Workers is a list of references to Workers (locations) where the test should run.
+                  It overrides the locations defined in the TestScenario.
+                items:
+                  description: TestRunWorkerSpec defines the specification of a worker
+                    in a TestRun.
+                  properties:
+                    name:
+                      description: name is unique within a namespace to reference
+                        an object resource.
+                      minLength: 1
+                      type: string
+                    namespace:
+                      description: namespace defines the space within which the object
+                        name must be unique.
+                      type: string
+                    numWorkers:
+                      default: 1
+                      description: NumWorkers is the number of workers to use for
+                        this location.
+                      format: int32
+                      minimum: 1
+                      type: integer
+                  required:
+                  - name
+                  - namespace
+                  type: object
+                  x-kubernetes-map-type: atomic
+                type: array
+                x-kubernetes-list-map-keys:
+                - name
+                x-kubernetes-list-type: map
+            required:
+            - influxdb
+            - scenario
+            - state
+            - target
+            type: object
+          status:
+            description: status defines the observed state of TestRun
+            properties:
+              completionTime:
+                description: CompletionTime is the time the test run completed.
+                format: date-time
+                type: string
+              dashboardUID:
+                description: DashboardUID is the UID of the Grafana dashboard for
+                  this test run.
+                type: string
+              influxdbCredentials:
+                description: |-
+                  InfluxDBSecret is a secret generated for each test run with the following keys:
+                  INFLUXDB_HOST, INFLUXDB_ORG, INFLUXDB_BUCKET, INFLUXDB_TOKEN
+                properties:
+                  name:
+                    description: name is unique within a namespace to reference an
+                      object resource.
+                    minLength: 1
+                    type: string
+                  namespace:
+                    description: namespace defines the space within which the object
+                      name must be unique.
+                    type: string
+                required:
+                - name
+                - namespace
+                type: object
+                x-kubernetes-map-type: atomic
+              scenarioSpec:
+                description: ScenarioSpec are the scenario values for this test run.
+                properties:
+                  git:
+                    properties:
+                      path:
+                        default: loadtest.js
+                        description: Path is the path within the repository to the
+                          test scenario script
+                        minLength: 1
+                        type: string
+                      repository:
+                        description: |-
+                          Repository is the URL of the git repository containing the test scenario
+                          For example:
+                          - https://github.com/ReviewSignal/loadtesting
+
+                          We currently only support public repositories via http.
+                        minLength: 10
+                        pattern: ^(https?|git)://[^\s/$.?#].[^\s]*$
+                        type: string
+                      revision:
+                        default: main
+                        description: Revision is the git revision (branch, tag, commit)
+                          to checkout
+                        minLength: 1
+                        pattern: ^[A-Za-z0-9._/-]+$
+                        type: string
+                    required:
+                    - path
+                    - repository
+                    - revision
+                    type: object
+                  maxDuration:
+                    default: 30m
+                    description: |-
+                      MaxDuration is the maximum duration the test scenario is allowed to run.
+                      This is a safety measure to prevent runaway tests.
+                      It must be a valid duration string. For example: "30m", "1h", "2h45m".
+                      If not specified, it defaults to "30m".
+                      It must account for the time taken to set up the test scenario (dowloading docker image, worker synchronization
+                      time, etc.).
+                    type: string
+                  resources:
+                    description: Resources defines the resource requests and limits
+                      for the test scenario execution.
+                    properties:
+                      claims:
+                        description: |-
+                          Claims lists the names of resources, defined in spec.resourceClaims,
+                          that are used by this container.
+
+                          This is an alpha field and requires enabling the
+                          DynamicResourceAllocation feature gate.
+
+                          This field is immutable. It can only be set for containers.
+                        items:
+                          description: ResourceClaim references one entry in PodSpec.ResourceClaims.
+                          properties:
+                            name:
+                              description: |-
+                                Name must match the name of one entry in pod.spec.resourceClaims of
+                                the Pod where this field is used. It makes that resource available
+                                inside a container.
+                              type: string
+                            request:
+                              description: |-
+                                Request is the name chosen for a request in the referenced claim.
+                                If empty, everything from the claim is made available, otherwise
+                                only the result of this request.
+                              type: string
+                          required:
+                          - name
+                          type: object
+                        type: array
+                        x-kubernetes-list-map-keys:
+                        - name
+                        x-kubernetes-list-type: map
+                      limits:
+                        additionalProperties:
+                          anyOf:
+                          - type: integer
+                          - type: string
+                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                          x-kubernetes-int-or-string: true
+                        description: |-
+                          Limits describes the maximum amount of compute resources allowed.
+                          More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                        type: object
+                      requests:
+                        additionalProperties:
+                          anyOf:
+                          - type: integer
+                          - type: string
+                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                          x-kubernetes-int-or-string: true
+                        description: |-
+                          Requests describes the minimum amount of compute resources required.
+                          If Requests is omitted for a container, it defaults to Limits if that is explicitly specified,
+                          otherwise to an implementation-defined value. Requests cannot exceed Limits.
+                          More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                        type: object
+                    type: object
+                  script:
+                    description: Script is the URL of the test scenario script
+                    type: string
+                type: object
+                x-kubernetes-validations:
+                - message: Only one of 'git' or 'script' must be specified
+                  rule: '((has(self.git) ? 1 : 0) + (has(self.script) ? 1 : 0)) <
+                    2'
+              startTime:
+                description: StartTime is the time the test was set to be started.
+                format: date-time
+                type: string
+              victoriaLogs:
+                description: VictoriaLogs contains the VictoriaLogs configuration
+                  for this test run.
+                properties:
+                  accountID:
+                    description: AccountID is the VictoriaLogs account ID.
+                    format: int32
+                    type: integer
+                  projectID:
+                    description: ProjectID is the VictoriaLogs project ID assigned
+                      to this test run.
+                    format: int32
+                    type: integer
+                  url:
+                    description: URL is the VictoriaLogs insert endpoint URL.
+                    type: string
+                type: object
+              workerStatuses:
+                description: WorkerStatuses is the status of each worker.
+                items:
+                  properties:
+                    assignedSegments:
+                      description: AssignedSegments are the segments assigned to this
+                        worker.
+                      items:
+                        type: string
+                      type: array
+                    conditions:
+                      description: Conditions is the list of conditions for the worker.
+                      items:
+                        description: Condition contains details for one aspect of
+                          the current state of this API Resource.
+                        properties:
+                          lastTransitionTime:
+                            description: |-
+                              lastTransitionTime is the last time the condition transitioned from one status to another.
+                              This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                            format: date-time
+                            type: string
+                          message:
+                            description: |-
+                              message is a human readable message indicating details about the transition.
+                              This may be an empty string.
+                            maxLength: 32768
+                            type: string
+                          observedGeneration:
+                            description: |-
+                              observedGeneration represents the .metadata.generation that the condition was set based upon.
+                              For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                              with respect to the current state of the instance.
+                            format: int64
+                            minimum: 0
+                            type: integer
+                          reason:
+                            description: |-
+                              reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                              Producers of specific condition types may define expected values and meanings for this field,
+                              and whether the values are considered a guaranteed API.
+                              The value should be a CamelCase string.
+                              This field may not be empty.
+                            maxLength: 1024
+                            minLength: 1
+                            pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                            type: string
+                          status:
+                            description: status of the condition, one of True, False,
+                              Unknown.
+                            enum:
+                            - "True"
+                            - "False"
+                            - Unknown
+                            type: string
+                          type:
+                            description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                            maxLength: 316
+                            pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                            type: string
+                        required:
+                        - lastTransitionTime
+                        - message
+                        - reason
+                        - status
+                        - type
+                        type: object
+                      type: array
+                      x-kubernetes-list-map-keys:
+                      - type
+                      x-kubernetes-list-type: map
+                    name:
+                      description: Name is the name of the worker.
+                      type: string
+                    phase:
+                      default: Pending
+                      description: Phase is the current phase of the worker.
+                      enum:
+                      - Pending
+                      - Queued
+                      - Ready
+                      - Running
+                      - Completed
+                      - Failed
+                      - Canceled
+                      - Unknown
+                      minLength: 1
+                      type: string
+                  required:
+                  - name
+                  - phase
+                  type: object
+                type: array
+                x-kubernetes-list-map-keys:
+                - name
+                x-kubernetes-list-type: map
+            type: object
+        required:
+        - spec
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.19.1-0.20250829124250-5d6015328208
+  name: testscenarios.ape.reviewsignal.com
+spec:
+  group: ape.reviewsignal.com
+  names:
+    kind: TestScenario
+    listKind: TestScenarioList
+    plural: testscenarios
+    singular: testscenario
+  scope: Namespaced
+  versions:
+  - name: v1
+    schema:
+      openAPIV3Schema:
+        description: TestScenario is the Schema for the testscenarios API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: spec defines the desired state of TestScenario
+            properties:
+              envVars:
+                description: EnvVars is a list of environment variables to set for
+                  the test run.
+                items:
+                  properties:
+                    name:
+                      description: |-
+                        Name of the environment variable. Must be a C_IDENTIFIER.
+                        It cannot be TARGET, or start with K6_ or APE_ as these are reserved for the test scenario and system.
+                      minLength: 1
+                      type: string
+                      x-kubernetes-validations:
+                      - message: Name cannot be TARGET or start with K6_ or APE_ as
+                          these are reserved.
+                        rule: '!matches(self.upperAscii(), ''^(TARGET|K6_.*|APE_.*)$'')'
+                    value:
+                      description: Value of the environment variable.
+                      type: string
+                  required:
+                  - name
+                  type: object
+                maxItems: 24
+                type: array
+                x-kubernetes-list-map-keys:
+                - name
+                x-kubernetes-list-type: map
+              git:
+                properties:
+                  path:
+                    default: loadtest.js
+                    description: Path is the path within the repository to the test
+                      scenario script
+                    minLength: 1
+                    type: string
+                  repository:
+                    description: |-
+                      Repository is the URL of the git repository containing the test scenario
+                      For example:
+                      - https://github.com/ReviewSignal/loadtesting
+
+                      We currently only support public repositories via http.
+                    minLength: 10
+                    pattern: ^(https?|git)://[^\s/$.?#].[^\s]*$
+                    type: string
+                  revision:
+                    default: main
+                    description: Revision is the git revision (branch, tag, commit)
+                      to checkout
+                    minLength: 1
+                    pattern: ^[A-Za-z0-9._/-]+$
+                    type: string
+                required:
+                - path
+                - repository
+                - revision
+                type: object
+              labels:
+                additionalProperties:
+                  type: string
+                description: Labels are test results labels to set for the test run.
+                maxProperties: 24
+                type: object
+              maxDuration:
+                default: 30m
+                description: |-
+                  MaxDuration is the maximum duration the test scenario is allowed to run.
+                  This is a safety measure to prevent runaway tests.
+                  It must be a valid duration string. For example: "30m", "1h", "2h45m".
+                  If not specified, it defaults to "30m".
+                  It must account for the time taken to set up the test scenario (dowloading docker image, worker synchronization
+                  time, etc.).
+                type: string
+              resources:
+                description: Resources defines the resource requests and limits for
+                  the test scenario execution.
+                properties:
+                  claims:
+                    description: |-
+                      Claims lists the names of resources, defined in spec.resourceClaims,
+                      that are used by this container.
+
+                      This is an alpha field and requires enabling the
+                      DynamicResourceAllocation feature gate.
+
+                      This field is immutable. It can only be set for containers.
+                    items:
+                      description: ResourceClaim references one entry in PodSpec.ResourceClaims.
+                      properties:
+                        name:
+                          description: |-
+                            Name must match the name of one entry in pod.spec.resourceClaims of
+                            the Pod where this field is used. It makes that resource available
+                            inside a container.
+                          type: string
+                        request:
+                          description: |-
+                            Request is the name chosen for a request in the referenced claim.
+                            If empty, everything from the claim is made available, otherwise
+                            only the result of this request.
+                          type: string
+                      required:
+                      - name
+                      type: object
+                    type: array
+                    x-kubernetes-list-map-keys:
+                    - name
+                    x-kubernetes-list-type: map
+                  limits:
+                    additionalProperties:
+                      anyOf:
+                      - type: integer
+                      - type: string
+                      pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                      x-kubernetes-int-or-string: true
+                    description: |-
+                      Limits describes the maximum amount of compute resources allowed.
+                      More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                    type: object
+                  requests:
+                    additionalProperties:
+                      anyOf:
+                      - type: integer
+                      - type: string
+                      pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                      x-kubernetes-int-or-string: true
+                    description: |-
+                      Requests describes the minimum amount of compute resources required.
+                      If Requests is omitted for a container, it defaults to Limits if that is explicitly specified,
+                      otherwise to an implementation-defined value. Requests cannot exceed Limits.
+                      More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                    type: object
+                type: object
+              script:
+                description: Script is the URL of the test scenario script
+                type: string
+              workers:
+                description: Workers is a list of references to Workers (locations)
+                  where the test should run.
+                items:
+                  description: TestRunWorkerSpec defines the specification of a worker
+                    in a TestRun.
+                  properties:
+                    name:
+                      description: name is unique within a namespace to reference
+                        an object resource.
+                      minLength: 1
+                      type: string
+                    namespace:
+                      description: namespace defines the space within which the object
+                        name must be unique.
+                      type: string
+                    numWorkers:
+                      default: 1
+                      description: NumWorkers is the number of workers to use for
+                        this location.
+                      format: int32
+                      minimum: 1
+                      type: integer
+                  required:
+                  - name
+                  - namespace
+                  type: object
+                  x-kubernetes-map-type: atomic
+                minItems: 1
+                type: array
+                x-kubernetes-list-map-keys:
+                - name
+                x-kubernetes-list-type: map
+            type: object
+            x-kubernetes-validations:
+            - message: Only one of 'git' or 'script' must be specified
+              rule: '((has(self.git) ? 1 : 0) + (has(self.script) ? 1 : 0)) < 2'
+          status:
+            description: status defines the observed state of TestScenario
+            properties:
+              conditions:
+                description: The status of each condition is one of True, False, or
+                  Unknown.
+                items:
+                  description: Condition contains details for one aspect of the current
+                    state of this API Resource.
+                  properties:
+                    lastTransitionTime:
+                      description: |-
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: |-
+                        message is a human readable message indicating details about the transition.
+                        This may be an empty string.
+                      maxLength: 32768
+                      type: string
+                    observedGeneration:
+                      description: |-
+                        observedGeneration represents the .metadata.generation that the condition was set based upon.
+                        For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                        with respect to the current state of the instance.
+                      format: int64
+                      minimum: 0
+                      type: integer
+                    reason:
+                      description: |-
+                        reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                        Producers of specific condition types may define expected values and meanings for this field,
+                        and whether the values are considered a guaranteed API.
+                        The value should be a CamelCase string.
+                        This field may not be empty.
+                      maxLength: 1024
+                      minLength: 1
+                      pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                      type: string
+                    status:
+                      description: status of the condition, one of True, False, Unknown.
+                      enum:
+                      - "True"
+                      - "False"
+                      - Unknown
+                      type: string
+                    type:
+                      description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                      maxLength: 316
+                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+                x-kubernetes-list-map-keys:
+                - type
+                x-kubernetes-list-type: map
+            type: object
+        required:
+        - spec
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.19.1-0.20250829124250-5d6015328208
+  name: workers.ape.reviewsignal.com
+spec:
+  group: ape.reviewsignal.com
+  names:
+    kind: Worker
+    listKind: WorkerList
+    plural: workers
+    singular: worker
+  scope: Namespaced
+  versions:
+  - name: v1
+    schema:
+      openAPIV3Schema:
+        description: Worker is the Schema for the workers API.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: WorkerSpec defines the desired state of Worker.
+            properties:
+              kubeconfigSecret:
+                description: |-
+                  SecretReference represents a Secret Reference. It has enough information to retrieve secret
+                  in any namespace
+                properties:
+                  name:
+                    description: name is unique within a namespace to reference a
+                      secret resource.
+                    type: string
+                  namespace:
+                    description: namespace defines the space within which the secret
+                      name must be unique.
+                    type: string
+                type: object
+                x-kubernetes-map-type: atomic
+              namespace:
+                description: Namespace where the worker will operate.
+                minLength: 1
+                type: string
+              nodeSelector:
+                additionalProperties:
+                  type: string
+                description: NodeSelector to specify the nodes where the worker pods
+                  should be scheduled.
+                type: object
+              tolerations:
+                description: Tolerations to specify the tolerations for the worker
+                  pods.
+                items:
+                  description: |-
+                    The pod this Toleration is attached to tolerates any taint that matches
+                    the triple <key,value,effect> using the matching operator <operator>.
+                  properties:
+                    effect:
+                      description: |-
+                        Effect indicates the taint effect to match. Empty means match all taint effects.
+                        When specified, allowed values are NoSchedule, PreferNoSchedule and NoExecute.
+                      type: string
+                    key:
+                      description: |-
+                        Key is the taint key that the toleration applies to. Empty means match all taint keys.
+                        If the key is empty, operator must be Exists; this combination means to match all values and all keys.
+                      type: string
+                    operator:
+                      description: |-
+                        Operator represents a key's relationship to the value.
+                        Valid operators are Exists and Equal. Defaults to Equal.
+                        Exists is equivalent to wildcard for value, so that a pod can
+                        tolerate all taints of a particular category.
+                      type: string
+                    tolerationSeconds:
+                      description: |-
+                        TolerationSeconds represents the period of time the toleration (which must be
+                        of effect NoExecute, otherwise this field is ignored) tolerates the taint. By default,
+                        it is not set, which means tolerate the taint forever (do not evict). Zero and
+                        negative values will be treated as 0 (evict immediately) by the system.
+                      format: int64
+                      type: integer
+                    value:
+                      description: |-
+                        Value is the taint value the toleration matches to.
+                        If the operator is Exists, the value should be empty, otherwise just a regular string.
+                      type: string
+                  type: object
+                type: array
+            type: object
+          status:
+            description: WorkerStatus defines the observed state of Worker.
+            properties:
+              conditions:
+                items:
+                  description: Condition contains details for one aspect of the current
+                    state of this API Resource.
+                  properties:
+                    lastTransitionTime:
+                      description: |-
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: |-
+                        message is a human readable message indicating details about the transition.
+                        This may be an empty string.
+                      maxLength: 32768
+                      type: string
+                    observedGeneration:
+                      description: |-
+                        observedGeneration represents the .metadata.generation that the condition was set based upon.
+                        For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                        with respect to the current state of the instance.
+                      format: int64
+                      minimum: 0
+                      type: integer
+                    reason:
+                      description: |-
+                        reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                        Producers of specific condition types may define expected values and meanings for this field,
+                        and whether the values are considered a guaranteed API.
+                        The value should be a CamelCase string.
+                        This field may not be empty.
+                      maxLength: 1024
+                      minLength: 1
+                      pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                      type: string
+                    status:
+                      description: status of the condition, one of True, False, Unknown.
+                      enum:
+                      - "True"
+                      - "False"
+                      - Unknown
+                      type: string
+                    type:
+                      description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                      maxLength: 316
+                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: orderly-ape
+  name: orderly-ape-controller-manager
+  namespace: orderly-ape-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: orderly-ape
+  name: orderly-ape-leader-election-role
+  namespace: orderly-ape-system
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - coordination.k8s.io
+  resources:
+  - leases
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+  - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: orderly-ape
+  name: orderly-ape-influxdb-admin-role
+rules:
+- apiGroups:
+  - ape.reviewsignal.com
+  resources:
+  - influxdbs
+  verbs:
+  - '*'
+- apiGroups:
+  - ape.reviewsignal.com
+  resources:
+  - influxdbs/status
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: orderly-ape
+  name: orderly-ape-influxdb-editor-role
+rules:
+- apiGroups:
+  - ape.reviewsignal.com
+  resources:
+  - influxdbs
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ape.reviewsignal.com
+  resources:
+  - influxdbs/status
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: orderly-ape
+  name: orderly-ape-influxdb-viewer-role
+rules:
+- apiGroups:
+  - ape.reviewsignal.com
+  resources:
+  - influxdbs
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ape.reviewsignal.com
+  resources:
+  - influxdbs/status
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: orderly-ape-manager-role
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - pods/proxy
+  verbs:
+  - delete
+  - get
+  - patch
+  - post
+  - put
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ape.reviewsignal.com
+  resources:
+  - influxdbs
+  - testruns
+  - testscenarios
+  - workers
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ape.reviewsignal.com
+  resources:
+  - influxdbs/finalizers
+  - testruns/finalizers
+  - workers/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - ape.reviewsignal.com
+  resources:
+  - influxdbs/status
+  - testruns/status
+  - workers/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - batch
+  resources:
+  - jobs
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - policy
+  resources:
+  - poddisruptionbudgets
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: orderly-ape-metrics-auth-role
+rules:
+- apiGroups:
+  - authentication.k8s.io
+  resources:
+  - tokenreviews
+  verbs:
+  - create
+- apiGroups:
+  - authorization.k8s.io
+  resources:
+  - subjectaccessreviews
+  verbs:
+  - create
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: orderly-ape-metrics-reader
+rules:
+- nonResourceURLs:
+  - /metrics
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: orderly-ape
+  name: orderly-ape-testrun-admin-role
+rules:
+- apiGroups:
+  - ape.reviewsignal.com
+  resources:
+  - testruns
+  verbs:
+  - '*'
+- apiGroups:
+  - ape.reviewsignal.com
+  resources:
+  - testruns/status
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: orderly-ape
+  name: orderly-ape-testrun-editor-role
+rules:
+- apiGroups:
+  - ape.reviewsignal.com
+  resources:
+  - testruns
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ape.reviewsignal.com
+  resources:
+  - testruns/status
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: orderly-ape
+  name: orderly-ape-testrun-viewer-role
+rules:
+- apiGroups:
+  - ape.reviewsignal.com
+  resources:
+  - testruns
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ape.reviewsignal.com
+  resources:
+  - testruns/status
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: orderly-ape
+  name: orderly-ape-testrun-worker-role
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - create
+- apiGroups:
+  - batch
+  resources:
+  - jobs
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - delete
+- apiGroups:
+  - policy
+  resources:
+  - poddisruptionbudgets
+  verbs:
+  - create
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - pods/proxy
+  verbs:
+  - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: orderly-ape
+  name: orderly-ape-testscenario-admin-role
+rules:
+- apiGroups:
+  - ape.reviewsignal.com
+  resources:
+  - testscenarios
+  verbs:
+  - '*'
+- apiGroups:
+  - ape.reviewsignal.com
+  resources:
+  - testscenarios/status
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: orderly-ape
+  name: orderly-ape-testscenario-editor-role
+rules:
+- apiGroups:
+  - ape.reviewsignal.com
+  resources:
+  - testscenarios
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ape.reviewsignal.com
+  resources:
+  - testscenarios/status
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: orderly-ape
+  name: orderly-ape-testscenario-viewer-role
+rules:
+- apiGroups:
+  - ape.reviewsignal.com
+  resources:
+  - testscenarios
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ape.reviewsignal.com
+  resources:
+  - testscenarios/status
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: orderly-ape
+  name: orderly-ape-user-admin-role
+rules:
+- apiGroups:
+  - ape.reviewsignal.com
+  resources:
+  - users
+  verbs:
+  - '*'
+- apiGroups:
+  - ape.reviewsignal.com
+  resources:
+  - users/status
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: orderly-ape
+  name: orderly-ape-user-editor-role
+rules:
+- apiGroups:
+  - ape.reviewsignal.com
+  resources:
+  - users
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ape.reviewsignal.com
+  resources:
+  - users/status
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: orderly-ape
+  name: orderly-ape-user-viewer-role
+rules:
+- apiGroups:
+  - ape.reviewsignal.com
+  resources:
+  - users
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ape.reviewsignal.com
+  resources:
+  - users/status
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: orderly-ape
+  name: orderly-ape-worker-admin-role
+rules:
+- apiGroups:
+  - ape.reviewsignal.com
+  resources:
+  - workers
+  verbs:
+  - '*'
+- apiGroups:
+  - ape.reviewsignal.com
+  resources:
+  - workers/status
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: orderly-ape
+  name: orderly-ape-worker-editor-role
+rules:
+- apiGroups:
+  - ape.reviewsignal.com
+  resources:
+  - workers
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ape.reviewsignal.com
+  resources:
+  - workers/status
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: orderly-ape
+  name: orderly-ape-worker-viewer-role
+rules:
+- apiGroups:
+  - ape.reviewsignal.com
+  resources:
+  - workers
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ape.reviewsignal.com
+  resources:
+  - workers/status
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: orderly-ape
+  name: orderly-ape-leader-election-rolebinding
+  namespace: orderly-ape-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: orderly-ape-leader-election-role
+subjects:
+- kind: ServiceAccount
+  name: orderly-ape-controller-manager
+  namespace: orderly-ape-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: orderly-ape
+  name: orderly-ape-manager-rolebinding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: orderly-ape-manager-role
+subjects:
+- kind: ServiceAccount
+  name: orderly-ape-controller-manager
+  namespace: orderly-ape-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: orderly-ape-metrics-auth-rolebinding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: orderly-ape-metrics-auth-role
+subjects:
+- kind: ServiceAccount
+  name: orderly-ape-controller-manager
+  namespace: orderly-ape-system
+---
+apiVersion: v1
+data:
+  OIDC_CLIENT_ID: ""
+  OIDC_CLIENT_SECRET: ""
+  OIDC_ISSUER_URL: aHR0cHM6Ly9hY2NvdW50cy5nb29nbGUuY29t
+  OIDC_REDIRECT_URL: ""
+kind: Secret
+metadata:
+  name: orderly-ape-controller-manager-env-m74266t85t
+  namespace: orderly-ape-system
+type: Opaque
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: orderly-ape-controller-manager-http
+  namespace: orderly-ape-system
+spec:
+  ports:
+  - port: 80
+    protocol: TCP
+    targetPort: 8080
+  selector:
+    app.kubernetes.io/name: orderly-ape
+    control-plane: controller-manager
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: orderly-ape
+    control-plane: controller-manager
+  name: orderly-ape-controller-manager-http-service
+  namespace: orderly-ape-system
+spec:
+  ports:
+  - name: https
+    port: 80
+    protocol: TCP
+    targetPort: 8000
+  selector:
+    app.kubernetes.io/name: orderly-ape
+    control-plane: controller-manager
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: orderly-ape
+    control-plane: controller-manager
+  name: orderly-ape-controller-manager-metrics-service
+  namespace: orderly-ape-system
+spec:
+  ports:
+  - name: https
+    port: 8443
+    protocol: TCP
+    targetPort: 8443
+  selector:
+    app.kubernetes.io/name: orderly-ape
+    control-plane: controller-manager
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: orderly-ape
+    control-plane: controller-manager
+  name: orderly-ape-controller-manager
+  namespace: orderly-ape-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: orderly-ape
+      control-plane: controller-manager
+  template:
+    metadata:
+      annotations:
+        kubectl.kubernetes.io/default-container: manager
+      labels:
+        app.kubernetes.io/name: orderly-ape
+        control-plane: controller-manager
+    spec:
+      containers:
+      - args:
+        - --metrics-bind-address=:8443
+        - --leader-elect
+        - --health-probe-bind-address=:8081
+        - --zap-encoder=json
+        command:
+        - /manager
+        envFrom:
+        - secretRef:
+            name: orderly-ape-controller-manager-env-m74266t85t
+        image: ghcr.io/reviewsignal/orderly-ape/orderly-ape:0.2
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8081
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        name: manager
+        ports: []
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 8081
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          limits:
+            cpu: 500m
+            memory: 128Mi
+          requests:
+            cpu: 10m
+            memory: 64Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+        volumeMounts: []
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      serviceAccountName: orderly-ape-controller-manager
+      terminationGracePeriodSeconds: 10
+      volumes: []

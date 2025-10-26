@@ -1,0 +1,127 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "orderly-ape.fullname" . }}
+  labels:
+    {{- include "orderly-ape.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "orderly-ape.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+      {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "orderly-ape.labels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "orderly-ape.serviceAccountName" . }}
+      {{- with .Values.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: {{ .Chart.Name }}
+          {{- with .Values.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8000
+              protocol: TCP
+          env:
+            - name: MY_POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: BASE_URL
+              value: {{ include "orderly-ape.baseURL" . | quote }}
+            - name: JWT_ISSUER
+              value: {{ include "orderly-ape.jwtIssuer" . }}
+            - name: JWT_PRIVATE_KEY_PATH
+              value: /run/secrets/private-key.pem
+            {{- if .Values.dex.enabled }}
+            - name: DEX_GRPC_ENDPOINT
+              value: {{ include "dex.fullname" .Subcharts.dex }}.{{ .Release.Namespace }}:5557
+            - name: DEX_GRPC_INSECURE
+              value: "true"
+            {{- end }}
+            {{- if .Values.jwt.rsaPublicKey }}
+            - name: JWT_PUBLIC_KEY_PATH
+              value: /run/secrets/public-key.pem
+            {{- end }}
+            - name: VICTORIALOGS_URL
+              value: {{ include "orderly-ape.victoriaLogsURL" . | quote }}
+            - name: VICTORIALOGS_INSERT_URL
+              value: $(BASE_URL)/victorialogs/insert
+            {{- include "orderly-ape.grafanaEnv" . | nindent 12 }}
+            {{- if .Values.secret }}
+            - name: ENV_FILE
+              value: /run/secrets/env
+            {{- end }}
+            {{- with .Values.env }}
+              {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- if or .Values.envFrom .Values.dex.enabled }}
+          envFrom:
+          {{- if .Values.dex.enabled }}
+            - secretRef:
+                name: {{ include "orderly-ape.fullname" . }}-oidc-dex
+          {{- end }}
+          {{- with .Values.envFrom }}
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- end }}
+          {{- with .Values.livenessProbe }}
+          livenessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.readinessProbe }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+            - mountPath: /run/secrets
+              name: secrets
+          {{- with .Values.volumeMounts }}
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      volumes:
+        - name: secrets
+          secret:
+            secretName: {{ include "orderly-ape.fullname" . }}
+      {{- with .Values.volumes }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with (coalesce .Values.nodeSelector .Values.global.nodeSelector) }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

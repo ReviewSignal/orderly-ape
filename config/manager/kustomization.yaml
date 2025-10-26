@@ -1,0 +1,16 @@
+resources:
+- manager.yaml
+- service.yaml
+secretGenerator:
+- literals:
+  - OIDC_CLIENT_ID=
+  - OIDC_CLIENT_SECRET=
+  - OIDC_ISSUER_URL=https://accounts.google.com
+  - OIDC_REDIRECT_URL=
+  name: controller-manager-env
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+images:
+- name: controller
+  newName: ghcr.io/reviewsignal/orderly-ape/orderly-ape
+  newTag: "0.2"

@@ -1,0 +1,33 @@
+// SPDX-License-Identifier: MIT
+// SPDX-FileCopyrightText: Copyright (c) 2025 ReviewSignal
+
+package influxdb
+
+import (
+	"github.com/ReviewSignal/orderly-ape/internal/web/datatable"
+	"github.com/ReviewSignal/orderly-ape/internal/web/entity"
+)
+
+templ InfluxDBName(o datatable.Entry) {
+	{{ i := o.(entity.InfluxDB) }}
+	@datatable.ObjectCellInlineEdit(o) {
+		if i.Status.Version != "" {
+			<div class="flex items-center gap-1">
+				<span class="text-xs font-mono text-muted-foreground">{ i.Status.Version }</span>
+				if !i.Status.ServerStartTime.IsZero() {
+					&nbsp;&mdash;&nbsp;<span class="text-xs font-mono text-muted-foreground">Up since { i.Status.ServerStartTime.Format("2006-01-02 15:04:05") }</span>
+				}
+			</div>
+		}
+	}
+}
+
+templ InfluxDBAddress(o datatable.Entry) {
+	{{ i := o.(entity.InfluxDB) }}
+	<span class="font-mono text-sm">{ i.Spec.Address.Value }</span>
+}
+
+templ InfluxDBOrganization(o datatable.Entry) {
+	{{ i := o.(entity.InfluxDB) }}
+	<span class="text-sm">{ i.Spec.Organization.Value }</span>
+}

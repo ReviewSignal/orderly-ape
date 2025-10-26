@@ -1,0 +1,345 @@
+// SPDX-License-Identifier: MIT
+// SPDX-FileCopyrightText: Copyright (c) 2025 ReviewSignal
+
+package forms
+
+import (
+	"fmt"
+	"maps"
+	"strings"
+
+	"github.com/ReviewSignal/orderly-ape/web/components/templui/checkbox"
+	"github.com/ReviewSignal/orderly-ape/web/components/templui/form"
+	"github.com/ReviewSignal/orderly-ape/web/components/templui/icon"
+	"github.com/ReviewSignal/orderly-ape/web/components/templui/input"
+	"github.com/ReviewSignal/orderly-ape/web/components/templui/selectbox"
+	"github.com/ReviewSignal/orderly-ape/web/components/templui/textarea"
+	"github.com/ReviewSignal/orderly-ape/web/utils"
+)
+
+func mergeAttributes(attrs ...templ.Attributes) templ.Attributes {
+	merged := make(templ.Attributes)
+	for _, attr := range attrs {
+		if attr != nil {
+			maps.Copy(merged, attr)
+		}
+	}
+	return merged
+}
+
+func inputWidget(f *Field, props ...HTMLBaseProps) templ.Component {
+	p := WidgetProps[input.Props](f)
+
+	baseAtts := templ.Attributes{}
+	if f.Min != nil {
+		baseAtts["min"] = fmt.Sprintf("%d", *f.Min)
+	}
+	if f.Max != nil {
+		baseAtts["max"] = fmt.Sprintf("%d", *f.Max)
+	}
+	if f.Step != nil {
+		baseAtts["step"] = fmt.Sprintf("%d", *f.Step)
+	}
+	p.Attributes = mergeAttributes(baseAtts, p.Attributes)
+
+	if len(props) > 0 {
+		p.Attributes = mergeAttributes(p.Attributes, props[0].Attributes)
+		p.Class = utils.TwMerge(p.Class, props[0].Class)
+	}
+
+	return input.Input(p)
+}
+
+templ hiddenWidget(f *Field, props ...HTMLBaseProps) {
+	<input type="hidden" id={ f.ID() } name={ f.Name } value={ f.Value() }/>
+}
+
+templ selectWidget(f *Field, props ...HTMLBaseProps) {
+	{{
+	p := selectbox.Props{}
+	if len(props) > 0 {
+		p.Attributes = mergeAttributes(p.Attributes, props[0].Attributes)
+		p.Class = utils.TwMerge(p.Class, props[0].Class)
+	}
+	}}
+	@selectbox.SelectBox(p) {
+		@selectbox.Trigger(selectbox.TriggerProps{
+			ID:       f.ID(),
+			Name:     f.Name,
+			Required: f.Required,
+			HasError: f.Error != nil,
+			Class:    "font-normal",
+		}) {
+			@selectbox.Value(selectbox.ValueProps{
+				Placeholder: f.Placeholder,
+			})
+		}
+		@selectbox.Content(selectbox.ContentProps{NoSearch: true}) {
+			for _, c := range f.Choicer.List() {
+				@selectbox.Item(selectbox.ItemProps{
+					Class:    "font-normal",
+					Value:    c.Value,
+					Selected: c.Value == f.Value(),
+				}) {
+					{ c.Label }
+				}
+			}
+		}
+	}
+}
+
+type multiSelectProps struct {
+	ShowPills bool
+	NoSearch  bool
+}
+
+templ multiSelectWidget(f *Field, wprops multiSelectProps, props ...HTMLBaseProps) {
+	{{
+	p := selectbox.Props{Multiple: true}
+	if len(props) > 0 {
+		p.Attributes = mergeAttributes(p.Attributes, props[0].Attributes)
+		p.Class = utils.TwMerge(p.Class, props[0].Class)
+	}
+	}}
+	@selectbox.SelectBox(p) {
+		@selectbox.Trigger(selectbox.TriggerProps{
+			ID:        f.ID(),
+			Name:      f.Name,
+			Required:  f.Required,
+			HasError:  f.Error != nil,
+			Class:     "font-normal",
+			ShowPills: wprops.ShowPills,
+		}) {
+			@selectbox.Value(selectbox.ValueProps{
+				Placeholder: f.Placeholder,
+				Multiple:    true,
+			})
+		}
+		@selectbox.Content(selectbox.ContentProps{NoSearch: wprops.NoSearch}) {
+			{{
+			// Split comma-separated values to check which items are selected
+			selectedValues := make(map[string]bool)
+			if f.Value() != "" {
+				for _, v := range strings.Split(f.Value(), ",") {
+					selectedValues[strings.TrimSpace(v)] = true
+				}
+			}
+			}}
+			for _, c := range f.Choicer.List() {
+				@selectbox.Item(selectbox.ItemProps{
+					Class:    "font-normal",
+					Value:    c.Value,
+					Selected: selectedValues[c.Value],
+				}) {
+					{ c.Label }
+				}
+			}
+		}
+	}
+}
+
+func MultiSelectWidget(f *Field, props ...HTMLBaseProps) templ.Component {
+	wprops := multiSelectProps{ShowPills: false}
+	return multiSelectWidget(f, wprops, props...)
+}
+
+func MultiSelectPillsWidget(f *Field, props ...HTMLBaseProps) templ.Component {
+	wprops := multiSelectProps{ShowPills: true}
+	return multiSelectWidget(f, wprops, props...)
+}
+
+func MultiselectNoSearchWidget(f *Field, props ...HTMLBaseProps) templ.Component {
+	wprops := multiSelectProps{ShowPills: false, NoSearch: true}
+	return multiSelectWidget(f, wprops, props...)
+}
+
+func MultiSelectPillsNoSearchWidget(f *Field, props ...HTMLBaseProps) templ.Component {
+	wprops := multiSelectProps{ShowPills: true, NoSearch: true}
+	return multiSelectWidget(f, wprops, props...)
+}
+
+templ hiddenWidgetFormItem(f *Field, _ ...HTMLBaseProps) {
+	@f.Widget()
+}
+
+func TextWidget(f *Field, props ...HTMLBaseProps) templ.Component {
+	p := WidgetProps[textarea.Props](f)
+
+	if len(props) > 0 {
+		p.Attributes = mergeAttributes(p.Attributes, props[0].Attributes)
+		p.Class = utils.TwMerge(p.Class, props[0].Class)
+	}
+
+	return textarea.Textarea(p)
+}
+
+func CheckboxWidget(f *Field, props ...HTMLBaseProps) templ.Component {
+	p := WidgetProps[checkbox.Props](f)
+
+	if len(props) > 0 {
+		p.Attributes = mergeAttributes(p.Attributes, props[0].Attributes)
+		p.Class = utils.TwMerge(p.Class, props[0].Class)
+	}
+
+	return checkbox.Checkbox(p)
+}
+
+templ FormsetDeleteItem(f *Field, props ...HTMLBaseProps) {
+	{{ id := utils.RandomID() }}
+	<input type="checkbox" name={ f.Name } id={ id } value={ f.Value() } class="hidden peer"/>
+	<label for={ id } class="inline-flex items-center cursor-pointer">
+		@icon.X(icon.Props{StrokeWidth: "3px", Class: "size-4 shrink-0 text-destructive"})
+	</label>
+}
+
+templ (f *Field) description() {
+	if f.DescriptionComponent != nil {
+		@f.DescriptionComponent(f)
+	} else if f.Description != "" {
+		{ f.Description }
+	}
+}
+
+templ HorizontalFormItem(f *Field, props ...HTMLBaseProps) {
+	{{
+	p := form.ItemProps{
+		Class: "flex items-start space-x-2",
+	}
+	if len(props) > 0 {
+		p.Attributes = mergeAttributes(p.Attributes, props[0].Attributes)
+		p.Class = utils.TwMerge("flex-auto", p.Class, props[0].Class)
+	}
+	}}
+	@form.ItemFlex(p) {
+		if f.Label != "" && !f.InlineLabel {
+			@form.Label(form.LabelProps{
+				For:   f.ID(),
+				Class: "w-full max-w-48 pt-4",
+			}) {
+				{ f.Label }
+			}
+		}
+		<div class="space-y-2 flex-auto">
+			if !f.InlineLabel {
+				{ children... }
+			}
+			if f.Label != "" && f.InlineLabel {
+				@form.Label(form.LabelProps{
+					For:   f.ID(),
+					Class: "w-full max-w-48 pt-4 inline-flex gap-0.5 items-center",
+				}) {
+					{ f.Label }
+					{ children... }
+				}
+			}
+			if f.Description != "" {
+				@form.Description() {
+					@f.description()
+				}
+			}
+			if f.Error != nil {
+				@form.Message(form.MessageProps{
+					Variant: form.MessageVariantError,
+				}) {
+					{ f.Error.Error() }
+				}
+			}
+		</div>
+	}
+}
+
+templ StackedFormItem(f *Field, props ...HTMLBaseProps) {
+	{{
+	p := form.ItemProps{}
+	if len(props) > 0 {
+		p.Attributes = mergeAttributes(p.Attributes, props[0].Attributes)
+		p.Class = utils.TwMerge("flex-auto", p.Class, props[0].Class)
+	}
+	}}
+	@form.Item(p) {
+		if f.Label != "" && !f.InlineLabel {
+			@form.Label(form.LabelProps{
+				For: f.ID(),
+			}) {
+				{ f.Label }
+			}
+			{ children... }
+		}
+		if f.Label != "" && f.InlineLabel {
+			@form.Label(form.LabelProps{
+				For:   f.ID(),
+				Class: "inline-flex items-center gap-0.5",
+			}) {
+				{ children... }
+				{ f.Label }
+			}
+		}
+		if f.Label == "" {
+			{ children... }
+		}
+		if f.Description != "" {
+			@form.Description() {
+				@f.description()
+			}
+		}
+		if f.Error != nil {
+			@form.Message(form.MessageProps{
+				Variant: form.MessageVariantError,
+			}) {
+				{ f.Error.Error() }
+			}
+		}
+	}
+}
+
+templ (f *Form) form() {
+	// First we render the form errors
+	for _, formError := range f.GetNonFieldErrors() {
+		@form.Message(form.MessageProps{
+			Variant: form.MessageVariantError,
+		}) {
+			{ formError.Error() }
+		}
+	}
+	// First, we need to render the hidden inputs
+	for _, field := range f.fields() {
+		if field.Hidden {
+			@field.Component()
+		}
+	}
+	// Finally, we render the fields
+	for _, item := range f.Fields {
+		@item.Component() {
+			for _, field := range item.FieldsList() {
+				if !field.Hidden {
+					@field.Component() {
+						@field.Widget()
+					}
+				}
+			}
+		}
+	}
+}
+
+templ defaultSection(s *Section, props ...HTMLBaseProps) {
+	if s.Title != "" {
+		<h2 class="font-medium text-xl border-b">{ s.Title }</h2>
+	}
+	{ children... }
+}
+
+templ HorizontalSection(s *Section, props ...HTMLBaseProps) {
+	{{
+	p := form.ItemProps{}
+	if len(props) > 0 {
+		p.Attributes = mergeAttributes(p.Attributes, props[0].Attributes)
+		p.Class = utils.TwMerge("items-start flex-wrap", p.Class, props[0].Class)
+	}
+	}}
+	if s.Title != "" {
+		<h2 class="font-medium text-xl border-b">{ s.Title }</h2>
+	}
+	@form.ItemFlex(p) {
+		{ children... }
+	}
+}

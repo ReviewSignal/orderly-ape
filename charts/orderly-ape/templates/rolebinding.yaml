@@ -1,0 +1,31 @@
+{{- if .Values.rbac.create }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  labels:
+    {{- include "orderly-ape.labels" . | nindent 4 }}
+  name: {{ include "orderly-ape.fullname" . }}-leader-election
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: orderly-ape-leader-election-role
+subjects:
+- kind: ServiceAccount
+  name: {{ include "orderly-ape.serviceAccountName" . }}
+  namespace: {{ .Release.Namespace }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  labels:
+    {{- include "orderly-ape.labels" . | nindent 4 }}
+  name: {{ include "orderly-ape.fullname" . }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: orderly-ape-manager-role
+subjects:
+- kind: ServiceAccount
+  name: {{ include "orderly-ape.serviceAccountName" . }}
+  namespace: {{ .Release.Namespace }}
+{{- end }}

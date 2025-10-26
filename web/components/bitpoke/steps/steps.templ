@@ -1,0 +1,85 @@
+// SPDX-License-Identifier: MIT
+// SPDX-FileCopyrightText: Copyright (c) 2025 ReviewSignal
+
+package steps
+
+import (
+	"fmt"
+
+	"github.com/ReviewSignal/orderly-ape/web/components/templui/icon"
+	"github.com/ReviewSignal/orderly-ape/web/utils"
+)
+
+type StepItemProps struct {
+	Class      string
+	Attributes templ.Attributes
+	Completed  bool
+	Current    bool
+	Label      string
+	Number     int
+}
+type StepsProps struct {
+	ID         string
+	Label      string
+	Class      string
+	Attributes templ.Attributes
+}
+
+templ Steps(props ...StepsProps) {
+	{{
+	p := StepsProps{}
+	if len(props) > 0 {
+		p = props[0]
+	}
+	}}
+	<ol
+		class={ utils.TwMerge("flex w-full items-center gap-2 pb-4 2xl:py-4 min-h-16", p.Class) }
+		aria-label={ p.Label }
+		{ p.Attributes... }
+	>
+		{ children... }
+	</ol>
+}
+
+templ StepItem(props ...StepItemProps) {
+	{{
+	p := StepItemProps{}
+	if len(props) > 0 {
+		p = props[0]
+	}
+	}}
+	<li class="group first:list-item first:w-auto flex w-full items-center text-sm" aria-label={ p.Label } { p.Attributes... }>
+		<span
+			class={ "h-0.5 w-full group-first:hidden",
+                 utils.IfElse(p.Current || p.Completed, "bg-primary dark:bg-primary-dark",  "bg-outline dark:bg-outline-dark") }
+			aria-hidden="true"
+		></span>
+		<div class="flex items-center gap-2 group-first:pl-0 pl-2">
+			<span
+				class={ "flex size-6 shrink-0 items-center justify-center",
+                "rounded-full font-medium",
+                utils.IfElse(p.Current || p.Completed, "border border-primary dark:border-primary-dark", "border border-outline dark:border-outline-dark"),
+                utils.IfElse(p.Current || p.Completed, "bg-primary dark:bg-primary-dark font-bold text-on-primary",
+                    "bg-surface-alt text-on-surface dark:bg-surface-dark-alt dark:text-on-surface-dark"),
+                utils.If(p.Current, "outline outline-2 outline-offset-2 outline-primary dark:outline-primary-dark") }
+				title={ p.Label }
+			>
+				if ! p.Completed {
+					{ fmt.Sprint(p.Number) }
+				} else {
+					<span class="flex size-6 items-center justify-center rounded-full border border-primary bg-primary text-on-primary dark:border-primary-dark dark:bg-primary-dark dark:text-on-primary-dark">
+						@icon.Check(icon.Props{Class: "size-4"})
+						<span class="sr-only">completed</span>
+					</span>
+				}
+			</span>
+			<span
+				class={ "hidden w-max sm:inline",
+                    utils.IfElse(p.Current || p.Completed, "text-primary dark:text-primary-dark" ,"text-on-surface dark:text-on-surface-dark"),
+                    utils.IfElse(p.Current, "font-bold", "font-medium") }
+			>
+				{ children... }
+			</span>
+		</div>
+	</li>
+}

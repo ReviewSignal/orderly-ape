@@ -1,0 +1,85 @@
+// SPDX-License-Identifier: MIT
+// SPDX-FileCopyrightText: Copyright (c) 2025 ReviewSignal
+
+package grafana
+
+import (
+	"net/http"
+
+	"github.com/gorilla/mux"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
+
+	"github.com/ReviewSignal/orderly-ape/internal/util/common"
+	"github.com/ReviewSignal/orderly-ape/internal/web/entity"
+
+	apev1 "github.com/ReviewSignal/orderly-ape/api/v1"
+)
+
+func DashboardHandler(cl client.Client, ns string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		l := logf.FromContext(r.Context())
+		vars := mux.Vars(r)
+		testid := vars["testid"]
+		if testid == "" {
+			http.NotFound(w, r)
+			return
+		}
+		testrun := &apev1.TestRun{}
+		err := cl.Get(r.Context(), client.ObjectKey{Name: testid, Namespace: ns}, testrun)
+		if err != nil {
+			if client.IgnoreNotFound(err) == nil {
+				http.NotFound(w, r)
+				return
+			} else {
+				l.Error(err, "failed to get testrun for dashboard", "testid", testid)
+				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+				return
+			}
+		}
+		Dashboard(entity.WrapTestRun(testrun)).Render(r.Context(), w)
+	}
+}
+
+templ Dashboard(tr entity.TestRun) {
+	<!DOCTYPE html>
+	<html lang="en" class="h-full w-full">
+		<head>
+			<meta charset="UTF-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+			<meta http-equiv="X-UA-Compatible" content="ie=edge"/>
+			<title>Test Results - { common.DisplayName(tr) }</title>
+			<link rel="icon" type="image/png" href="/public/favicon-96x96.png" sizes="96x96"/>
+			<link rel="icon" type="image/svg+xml" href="/public/favicon.svg"/>
+			<link rel="shortcut icon" href="/public/favicon.ico"/>
+			<link rel="apple-touch-icon" sizes="180x180" href="/public/apple-touch-icon.png"/>
+			<meta name="apple-mobile-web-app-title" content="Orderly Ape"/>
+			<link rel="manifest" href="/public/site.webmanifest"/>
+			<link rel="stylesheet" href="/public/style.css"/>
+		</head>
+		<body class="h-full w-full m-0 p-0 overflow-hidden">
+			<iframe
+				id="dashboard"
+				src={ tr.GrafanaEmbededDashboardLink() }
+				width="100%"
+				height="100%"
+				frameborder="0"
+			></iframe>
+			<script>
+                (function(window) {
+                    const iframe = document.getElementById("dashboard");
+                    iframe.addEventListener("load", function() {
+                        this.contentWindow.addEventListener("keydown", function (event) {
+                            // Block user from exiting grafana ui easily (esc and F keys)
+                            if (event.keyCode === 27 || event.keyCode === 70 ) {
+                                event.preventDefault();
+                                event.stopPropagation();
+                                return false;
+                            }
+                        }, true);
+                    });
+                })(window);
+            </script>
+		</body>
+	</html>
+}

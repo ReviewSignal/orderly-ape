@@ -1,0 +1,249 @@
+// SPDX-License-Identifier: MIT
+// SPDX-FileCopyrightText: Copyright (c) 2025 ReviewSignal
+
+package layouts
+
+import (
+	"context"
+	"fmt"
+	"strings"
+
+	"github.com/ReviewSignal/orderly-ape/internal/info"
+	"github.com/ReviewSignal/orderly-ape/internal/web/auth"
+	"github.com/ReviewSignal/orderly-ape/web/components/bitpoke/list"
+	"github.com/ReviewSignal/orderly-ape/web/components/bitpoke/name"
+	"github.com/ReviewSignal/orderly-ape/web/components/bitpoke/theme"
+	"github.com/ReviewSignal/orderly-ape/web/components/templui/avatar"
+	"github.com/ReviewSignal/orderly-ape/web/components/templui/code"
+	"github.com/ReviewSignal/orderly-ape/web/components/templui/dialog"
+	"github.com/ReviewSignal/orderly-ape/web/components/templui/dropdown"
+	"github.com/ReviewSignal/orderly-ape/web/components/templui/icon"
+	"github.com/ReviewSignal/orderly-ape/web/components/templui/input"
+	"github.com/ReviewSignal/orderly-ape/web/components/templui/popover"
+	"github.com/ReviewSignal/orderly-ape/web/components/templui/selectbox"
+	"github.com/ReviewSignal/orderly-ape/web/components/templui/tabs"
+	"github.com/ReviewSignal/orderly-ape/web/components/templui/textarea"
+	"github.com/ReviewSignal/orderly-ape/web/utils"
+	"github.com/ReviewSignal/orderly-ape/web/utils/url"
+)
+
+type menuLinkProps struct {
+	Active bool
+	Href   string
+	Target string
+}
+
+func (props menuLinkProps) ActiveClass() string {
+	if props.Active {
+		return "flex items-center rounded-radius gap-2 bg-primary/10 px-2 py-1.5 text-sm font-medium text-on-surface-strong underline-offset-2 focus-visible:underline focus:outline-hidden dark:bg-primary-dark/10 dark:text-on-surface-dark-strong"
+	}
+	return "flex items-center rounded-radius gap-2 px-2 py-1.5 text-sm font-medium text-on-surface underline-offset-2 hover:bg-primary/5 hover:text-on-surface-strong focus-visible:underline focus:outline-hidden dark:text-on-surface-dark dark:hover:bg-primary-dark/5 dark:hover:text-on-surface-dark-strong"
+}
+
+templ menuLink(props menuLinkProps) {
+	<a
+		href={ props.Href }
+		class={ props.ActiveClass() }
+		target={ props.Target }
+	>
+		{ children... }
+		if props.Active {
+			<span class="sr-only">active</span>
+		}
+	</a>
+}
+
+func PageTitle(ctx context.Context) string {
+	brandingName := info.BrandingName
+	pageTitle := utils.GetPageTitle(ctx)
+	if pageTitle == "" {
+		return brandingName
+	}
+
+	if pageTitle == brandingName {
+		return pageTitle
+	}
+
+	return fmt.Sprintf("%s | %s", pageTitle, brandingName)
+}
+
+templ HTML() {
+	<!DOCTYPE html>
+	<html lang="en" x-data x-cloak :class="{ 'dark': $store.darkMode.on }">
+		<head>
+			<meta charset="UTF-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+			<title>{ PageTitle(ctx) }</title>
+			<link rel="icon" type="image/png" href="/public/favicon-96x96.png" sizes="96x96"/>
+			<link rel="icon" type="image/svg+xml" href="/public/favicon.svg"/>
+			<link rel="shortcut icon" href="/public/favicon.ico"/>
+			<link rel="apple-touch-icon" sizes="180x180" href="/public/apple-touch-icon.png"/>
+			<meta name="apple-mobile-web-app-title" content="Orderly Ape"/>
+			<link rel="manifest" href="/public/site.webmanifest"/>
+			<link rel="stylesheet" href="/public/style.css"/>
+			<script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/focus@3.x.x/dist/cdn.min.js"></script>
+			<script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/persist@3.x.x/dist/cdn.min.js"></script>
+			<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+			@code.Script()
+			@list.Script()
+			@name.Script()
+			@popover.Script()
+			@avatar.Script()
+			@dialog.Script()
+			@dropdown.Script()
+			@input.Script()
+			@selectbox.Script()
+			@tabs.Script()
+			@textarea.Script()
+		</head>
+		<body class="bg-surface text-on-surface dark:bg-surface-dark dark:text-on-surface-dark">
+			{ children... }
+			@theme.SwitcherScript()
+		</body>
+	</html>
+}
+
+templ Base() {
+	@HTML() {
+		<div x-data="{ sidebarIsOpen: false }" class="relative flex w-full flex-col lg:flex-row">
+			<!-- This allows screen readers to skip the sidebar and go directly to the main content. -->
+			<a class="sr-only" href="#main-content">skip to the main content</a>
+			<!-- dark overlay for when the sidebar is open on smaller screens  -->
+			<div
+				x-cloak
+				x-show="sidebarIsOpen"
+				class="fixed inset-0 z-20 bg-surface-dark/10 backdrop-blur-xs lg:hidden"
+				aria-hidden="true"
+				x-on:click="sidebarIsOpen = false"
+				x-transition.opacity
+			></div>
+			<nav
+				x-cloak
+				class="fixed left-0 z-30 flex h-svh w-60 shrink-0 flex-col border-r border-outline bg-surface-alt p-4 transition-transform duration-300 lg:w-64 lg:translate-x-0 lg:relative dark:border-outline-dark dark:bg-surface-dark-alt"
+				x-bind:class="sidebarIsOpen ? 'translate-x-0' : '-translate-x-60'"
+				aria-label="sidebar navigation"
+			>
+				<!-- logo  -->
+				<a href="#" class="block text-2xl font-bold text-on-surface-strong dark:text-on-surface-dark-strong">
+					<span class="sr-only">homepage</span>
+					<img class="w-full" src={ info.BrandingLogoURL } title={ info.BrandingName }/>
+				</a>
+				<!-- sidebar links  -->
+				<div class="flex flex-col overflow-y-auto py-6 divide-y divide-outline dark:divide-outline-dark">
+					<div class="flex flex-col gap-2 overflow-y-auto py-2">
+						{{ p := url.RequestURL(ctx).Path }}
+						@menuLink(menuLinkProps{Active: p == "/test-runs", Href: "/test-runs"}) {
+							@icon.Rabbit(icon.Props{Class: "size-5 shrink-0"})
+							<span>Test Runs</span>
+						}
+						@menuLink(menuLinkProps{Active: p == "/test-scenarios", Href: "/test-scenarios"}) {
+							@icon.BookDashed(icon.Props{Class: "size-5 shrink-0"})
+							<span>Test Scenarios</span>
+						}
+					</div>
+					if auth.UserIsAuthenticated(ctx) {
+						<div class="flex flex-col gap-2 overflow-y-auto py-2">
+							@menuLink(menuLinkProps{Active: strings.HasPrefix(p, "/workers"), Href: "/workers"}) {
+								@icon.Globe(icon.Props{Class: "size-5 shrink-0"})
+								<span>Locations</span>
+							}
+							@menuLink(menuLinkProps{Active: strings.HasPrefix(p, "/influxdb"), Href: "/influxdb"}) {
+								@icon.Database(icon.Props{Class: "size-5 shrink-0"})
+								<span>InfluxDB Connections</span>
+							}
+							if info.GrafanaEnabled {
+								@menuLink(menuLinkProps{Active: strings.HasPrefix(p, "/grafana/"), Href: "/grafana/", Target: "_blank"}) {
+									@icon.ChartNoAxesCombined(icon.Props{Class: "size-5 shrink-0"})
+									<span>Grafana</span>
+								}
+							}
+						</div>
+						<div class="flex flex-col gap-2 overflow-y-auto py-2">
+							@menuLink(menuLinkProps{Active: strings.HasPrefix(p, "/settings/users"), Href: "/settings/users"}) {
+								@icon.Users(icon.Props{Class: "size-5 shrink-0"})
+								<span>Users</span>
+							}
+						</div>
+					}
+				</div>
+			</nav>
+			<!-- top navbar & main content  -->
+			<div class="h-svh w-full overflow-y-auto bg-surface dark:bg-surface-dark">
+				<!-- top navbar  -->
+				<nav
+					class="sticky top-0 z-10 flex flex-nowrap items-center border-b border-outline bg-surface-alt px-4 py-2 dark:border-outline-dark dark:bg-surface-dark-alt"
+					aria-label="top navibation bar"
+				>
+					<!-- sidebar toggle button for small screens  -->
+					<button
+						type="button"
+						class="lg:hidden inline-block mr-auto text-on-surface dark:text-on-surface-dark"
+						x-on:click="sidebarIsOpen = true"
+					>
+						@icon.Menu(icon.Props{Class: "size-5"})
+						<span class="sr-only">sidebar toggle</span>
+					</button>
+					<!-- Profile Menu  -->
+					<div
+						x-data="{ userDropdownIsOpen: false }"
+						class="relative ml-auto"
+						x-on:keydown.esc.window="userDropdownIsOpen = false"
+					>
+						<button
+							type="button"
+							class="flex w-full items-center rounded-radius gap-2 p-2 text-left text-on-surface hover:bg-primary/5 hover:text-on-surface-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:text-on-surface-dark dark:hover:bg-primary-dark/5 dark:hover:text-on-surface-dark-strong dark:focus-visible:outline-primary-dark"
+							x-bind:class="userDropdownIsOpen ? 'bg-primary/10 dark:bg-primary-dark/10' : ''"
+							aria-haspopup="true"
+							x-on:click="userDropdownIsOpen = ! userDropdownIsOpen"
+							x-bind:aria-expanded="userDropdownIsOpen"
+						>
+							<img src="/user/avatar" class="size-8 object-cover rounded-radius" alt="avatar" aria-hidden="true"/>
+						</button>
+						<!-- menu -->
+						<div
+							x-cloak
+							x-show="userDropdownIsOpen"
+							class="absolute top-14 right-0 z-20 h-fit w-48 border divide-y divide-outline border-outline bg-surface dark:divide-outline-dark dark:border-outline-dark dark:bg-surface-dark rounded-radius"
+							role="menu"
+							x-on:click.outside="userDropdownIsOpen = false"
+							x-on:keydown.down.prevent="$focus.wrap().next()"
+							x-on:keydown.up.prevent="$focus.wrap().previous()"
+							x-transition=""
+							x-trap="userDropdownIsOpen"
+						>
+							<div class="flex flex-col py-1.5">
+								<div class="px-2">
+									<span class="text-sm font-bold text-on-surface-strong dark:text-on-surface-dark-strong">
+										{ auth.GetFullName(ctx) }
+									</span>
+									<span class="text-xs" aria-hidden="true">{ auth.GetEmail(ctx) }</span>
+									<span class="sr-only">profile settings</span>
+								</div>
+							</div>
+							<div class="flex flex-col py-1.5">
+								<a
+									href="/auth/logout"
+									class="flex items-center gap-2 px-2 py-1.5 text-sm font-medium text-on-surface underline-offset-2 hover:bg-primary/5 hover:text-on-surface-strong focus-visible:underline focus:outline-hidden dark:text-on-surface-dark dark:hover:bg-primary-dark/5 dark:hover:text-on-surface-dark-strong"
+									role="menuitem"
+								>
+									@icon.LogOut(icon.Props{Class: "size-5 shrink-0"})
+									<span>Sign Out</span>
+								</a>
+							</div>
+						</div>
+					</div>
+					@theme.Switcher(theme.SwitcherProps{})
+				</nav>
+				<!-- main content  -->
+				<div id="main-content" class="p-4">
+					<div class="overflow-y-auto min-h-[calc(100svh_-_7rem)]">
+						{ children... }
+					</div>
+					<div class="text-xs text-on-surface/50 dark:text-on-surface-dark/50">
+						Orderly Ape <span class="underline decoration-dashed" title={ fmt.Sprintf("Built on %s", info.Version.BuildDate) }>{ info.Version.GitVersion }</span>
+					</div>
+				</div>
+			</div>
+		</div>
+	}
+}

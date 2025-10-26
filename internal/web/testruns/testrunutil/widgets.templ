@@ -1,0 +1,59 @@
+// SPDX-License-Identifier: MIT
+// SPDX-FileCopyrightText: Copyright (c) 2025 ReviewSignal
+
+package testrunutil
+
+import (
+	"github.com/ReviewSignal/orderly-ape/internal/web/forms"
+	"github.com/ReviewSignal/orderly-ape/web/components/bitpoke/list"
+	"github.com/ReviewSignal/orderly-ape/web/components/bitpoke/select"
+	"github.com/ReviewSignal/orderly-ape/web/components/templui/form"
+	"github.com/ReviewSignal/orderly-ape/web/components/templui/input"
+)
+
+templ TestEnvVarsWidget(f *forms.Field, props ...forms.HTMLBaseProps) {
+	@form.Description(form.DescriptionProps{}) {
+		<code class="bg-muted">TARGET</code>, <code class="bg-muted">K6</code>, and <code class="bg-muted">APE</code> prefixed variables are reserved.
+	}
+	@list.EditableList(list.EditableListProps{Name: f.Name, Value: f.Value()}) {
+		@list.ListItem(list.ListItemProps{Class: "items-end"}) {
+			<div class="flex items-center">
+				@input.Input(input.Props{Name: "name", Placeholder: "VARIABLE"})
+				@input.Input(input.Props{Name: "value", Class: "ml-2", Placeholder: "value"})
+			</div>
+		}
+	}
+}
+
+templ TestLabelsWidget(f *forms.Field, props ...forms.HTMLBaseProps) {
+	@form.Description(form.DescriptionProps{}) {
+		<code class="bg-muted">k6</code>, and <code class="bg-muted">ape</code> prefixed labels are reserved.
+	}
+	@list.EditableList(list.EditableListProps{Name: f.Name, Value: f.Value()}) {
+		@list.ListItem(list.ListItemProps{Class: "items-end"}) {
+			<div class="flex items-center">
+				@input.Input(input.Props{Name: "name", Placeholder: "name"})
+				@input.Input(input.Props{Name: "value", Class: "ml-2", Placeholder: "value"})
+			</div>
+		}
+	}
+}
+
+templ testRunLocations(f *forms.Field, nameChoicer forms.Choicer) {
+	@list.EditableList(list.EditableListProps{Name: f.Name, Value: f.Value(), MaxItems: len(nameChoicer.List())}) {
+		@list.ListItem(list.ListItemProps{Class: "items-end"}) {
+			<div class="flex flex-col gap-2 sm:flex-row sm:items-center">
+				@selectinput.Select(selectinput.SelectProps{Name: "name", Required: true, Placeholder: "Select location"}) {
+					for _, option := range nameChoicer.List() {
+						@selectinput.Option(selectinput.OptionProps{Value: option.Value}) {
+							{ option.Label }
+						}
+					}
+				}
+				<div class="w-20">
+					@input.Input(input.Props{Name: "workers", Type: input.TypeNumber, Value: "1", Attributes: templ.Attributes{"min": "1", "required": "true"}})
+				</div>
+			</div>
+		}
+	}
+}

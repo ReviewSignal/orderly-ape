@@ -1,0 +1,62 @@
+// SPDX-License-Identifier: MIT
+// SPDX-FileCopyrightText: Copyright (c) 2025 ReviewSignal
+
+package testscenarios
+
+import (
+	"github.com/ReviewSignal/orderly-ape/web/components/templui/badge"
+
+	"github.com/ReviewSignal/orderly-ape/internal/web/datatable"
+	"github.com/ReviewSignal/orderly-ape/internal/web/entity"
+)
+
+templ TestScenarioGitRepo(o datatable.Entry) {
+	{{ ts := o.(entity.TestScenario) }}
+	if ts.Spec.GitRepo != nil {
+		<div class="space-y-1">
+			<div class="text-sm font-mono">
+				<span class="text-muted-foreground">Repo:</span>
+				<span class="font-semibold">{ ts.Spec.GitRepo.Repository }</span>
+			</div>
+			<div class="text-sm font-mono">
+				<span class="text-muted-foreground">Rev:</span>
+				<span>{ ts.Spec.GitRepo.Revision }</span>
+			</div>
+			<div class="text-sm font-mono">
+				<span class="text-muted-foreground">Path:</span>
+				<span>{ ts.Spec.GitRepo.Path }</span>
+			</div>
+		</div>
+	} else {
+		<span class="text-muted-foreground">No git repo</span>
+	}
+}
+
+templ TestScenarioMaxDuration(o datatable.Entry) {
+	{{ ts := o.(entity.TestScenario) }}
+	if ts.Spec.MaxDuration != nil {
+		<span class="text-sm font-mono">{ ts.Spec.MaxDuration.Duration.String() }</span>
+	} else {
+		<span class="text-muted-foreground">30m (default)</span>
+	}
+}
+
+templ (c *TestScenariosController) TestScenarioLocations(o datatable.Entry) {
+	{{ ts := o.(entity.TestScenario) }}
+	if len(ts.Spec.Workers) > 0 {
+		<div class="flex flex-wrap gap-1 items-center text-sm">
+			for _, location := range ts.Spec.Workers {
+				@badge.Badge(badge.Props{
+					Variant: badge.VariantOutline,
+				}) {
+					if location.NumWorkers > 1 {
+						<span class="text-muted-foreground">{ location.NumWorkers } ×</span>
+					}
+					{ c.GetLocationName(location.ObjectReference) }
+				}
+			}
+		</div>
+	} else {
+		<span class="text-muted-foreground">No locations</span>
+	}
+}

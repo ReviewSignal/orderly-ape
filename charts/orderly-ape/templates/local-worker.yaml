@@ -1,0 +1,52 @@
+{{- if .Values.localWorker.enabled }}
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ .Values.localWorker.namespace }}
+  labels:
+    {{- include "orderly-ape.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": post-install
+    "helm.sh/resource-policy": keep
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "orderly-ape.fullname" . }}-testrun-worker-{{ .Values.localWorker.name }}
+  labels:
+    {{- include "orderly-ape.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": post-install
+    "helm.sh/resource-policy": keep
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: orderly-ape-testrun-worker-role
+subjects:
+- kind: ServiceAccount
+  name: {{ include "orderly-ape.serviceAccountName" . }}
+  namespace: {{ .Release.Namespace }}
+---
+apiVersion: ape.reviewsignal.com/v1
+kind: Worker
+metadata:
+  name: {{ .Values.localWorker.name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "orderly-ape.labels" . | nindent 4 }}
+  annotations:
+    ape.reviewsignal.com/display-name: Local Worker
+    "helm.sh/hook": post-install
+    "helm.sh/resource-policy": keep
+spec:
+  namespace: {{ .Values.localWorker.namespace }}
+  {{- if .Values.localWorker.nodeSelector }}
+  nodeSelector:
+    {{- toYaml .Values.localWorker.nodeSelector | nindent 4 }}
+  {{- end }}
+  {{- if .Values.localWorker.tolerations }}
+  tolerations:
+    {{- toYaml .Values.localWorker.tolerations | nindent 4 }}
+  {{- end }}
+{{- end }}

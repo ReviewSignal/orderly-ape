@@ -1,0 +1,21 @@
+{{- if (and .Values.issuer.create .Values.ingress.enabled) }}
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: {{ include "orderly-ape.issuerName" . }}
+  labels:
+    {{- include "orderly-ape.labels" . | nindent 4 }}
+  {{- with .Values.issuer.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  acme:
+    server: {{ .Values.issuer.server }}
+    privateKeySecretRef:
+      name: {{ .Values.issuer.privateKeySecretRef | default (printf "%s-issuer" (include "orderly-ape.issuerName" .)) }}
+    solvers:
+      - http01:
+          ingress:
+            class: {{ .Values.ingress.className }}
+{{- end }}

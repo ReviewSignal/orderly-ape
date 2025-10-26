@@ -1,0 +1,21 @@
+dependencies:
+- name: cert-manager
+  repository: https://charts.jetstack.io
+  version: v1.19.1
+- name: ingress-nginx
+  repository: https://kubernetes.github.io/ingress-nginx
+  version: 4.14.0
+- name: dex
+  repository: https://charts.dexidp.io
+  version: 0.24.0
+- name: grafana
+  repository: https://grafana.github.io/helm-charts
+  version: 10.1.4
+- name: influxdb2
+  repository: https://helm.influxdata.com/
+  version: 2.1.2
+- name: victoria-logs-single
+  repository: https://victoriametrics.github.io/helm-charts/
+  version: 0.11.17
+digest: sha256:7468edae1d8637a437b201de9cf8b2f257e76ad63af8acce167165c40e29acf8
+generated: "2025-11-06T21:46:54.230158+02:00"

@@ -1,0 +1,63 @@
+Orderly Ape
+===========
+{{- if .Values.ingress.enabled }}
+{{- range $host := .Values.ingress.hosts }}
+URL: http{{ if (or $.Values.ingress.tls $.Values.issuer.create) }}s{{ end }}://{{ $host.host }}
+{{- end }}
+{{- else if contains "NodePort" .Values.service.type }}
+Get the application URL by running these commands:
+  export NODE_PORT=$(kubectl get --namespace {{ .Release.Namespace }} -o jsonpath="{.spec.ports[0].nodePort}" services {{ include "orderly-ape.fullname" . }})
+  export NODE_IP=$(kubectl get nodes --namespace {{ .Release.Namespace }} -o jsonpath="{.items[0].status.addresses[0].address}")
+  echo http://$NODE_IP:$NODE_PORT
+{{- else if contains "LoadBalancer" .Values.service.type }}
+Get the application URL by running these commands:
+  export SERVICE_IP=$(kubectl get svc --namespace {{ .Release.Namespace }} {{ include "orderly-ape.fullname" . }} --template "{{"{{ range (index .status.loadBalancer.ingress 0) }}{{.}}{{ end }}"}}")
+  echo http://$SERVICE_IP:{{ .Values.service.port }}
+
+NOTE: It may take a few minutes for the LoadBalancer IP to be available.
+  You can watch its status by running 'kubectl get --namespace {{ .Release.Namespace }} svc -w {{ include "orderly-ape.fullname" . }}'
+{{- else if contains "ClusterIP" .Values.service.type }}
+Create a port forward to access the Orderly Ape:
+  export POD_NAME=$(kubectl get pods --namespace {{ .Release.Namespace }} -l "app.kubernetes.io/name={{ include "orderly-ape.name" . }},app.kubernetes.io/instance={{ .Release.Name }}" -o jsonpath="{.items[0].metadata.name}")
+  export CONTAINER_PORT=$(kubectl get pod --namespace {{ .Release.Namespace }} $POD_NAME -o jsonpath="{.spec.containers[0].ports[0].containerPort}")
+  kubectl --namespace {{ .Release.Namespace }} port-forward $POD_NAME 8080:$CONTAINER_PORT
+
+URL: http://localhost:8080
+{{- end }}
+
+{{- if .Values.dex.enabled }}
+
+** Initial Credentials **
+
+  Email:    {{ include "orderly-ape.adminEmail" . }}
+  Password: (stored in secret)
+
+  Retrieve the password with the following command:
+    kubectl get secret --namespace {{ .Release.Namespace }} {{ include "orderly-ape.fullname" . }}-admin -o go-template='{{"{{"}} index .data "ADMIN_PASSWORD" | base64decode {{"}}"}}'
+
+{{- end }}
+
+{{- if .Values.grafana.enabled }}
+
+Grafana
+=======
+
+{{- if .Values.ingress.enabled }}
+{{- $host := first .Values.ingress.hosts }}
+URL: http{{ if (or .Values.ingress.tls .Values.issuer.create) }}s{{ end }}://{{ $host.host }}/grafana
+{{- else }}
+Create a port forward to access Grafana:
+  kubectl --namespace {{ .Release.Namespace }} port-forward svc/{{ include "grafana.fullname" .Subcharts.grafana }} 3000:{{ .Values.grafana.service.port }}
+
+URL: http://127.0.0.1:3000
+{{- end }}
+
+** Initial Credentials **
+
+  User:     admin
+  Password: (stored in secret)
+
+  Retrieve the password with the following command:
+    kubectl get secret --namespace {{ .Release.Namespace }} {{ include "grafana.fullname" .Subcharts.grafana }} -o go-template='{{"{{"}} index .data "admin-password" | base64decode {{"}}"}}'
+{{- end }}
+{{- printf "\n" }}

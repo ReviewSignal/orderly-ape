@@ -1,0 +1,707 @@
+{{- if .Values.rbac.create }}
+---
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: orderly-ape-manager-role
+  labels:
+    helm.sh/chart: '{{ include "orderly-ape.chart" . }}'
+    app.kubernetes.io/version: '{{ .Chart.AppVersion  }}'
+    app.kubernetes.io/managed-by: '{{ .Release.Service }}'
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - pods
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - ""
+    resources:
+      - pods/proxy
+    verbs:
+      - delete
+      - get
+      - patch
+      - post
+      - put
+  - apiGroups:
+      - ""
+    resources:
+      - secrets
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - ape.reviewsignal.com
+    resources:
+      - influxdbs
+      - testruns
+      - testscenarios
+      - workers
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - ape.reviewsignal.com
+    resources:
+      - influxdbs/finalizers
+      - testruns/finalizers
+      - workers/finalizers
+    verbs:
+      - update
+  - apiGroups:
+      - ape.reviewsignal.com
+    resources:
+      - influxdbs/status
+      - testruns/status
+      - workers/status
+    verbs:
+      - get
+      - patch
+      - update
+  - apiGroups:
+      - batch
+    resources:
+      - jobs
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - policy
+    resources:
+      - poddisruptionbudgets
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+# This rule is not used by the project orderly-ape itself.
+# It is provided to allow the cluster admin to help manage permissions for users.
+#
+# Grants full permissions ('*') over ape.reviewsignal.com.
+# This role is intended for users authorized to modify roles and bindings within the cluster,
+# enabling them to delegate specific permissions to other users or groups as needed.
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: orderly-ape
+    app.kubernetes.io/managed-by: '{{ .Release.Service }}'
+    helm.sh/chart: '{{ include "orderly-ape.chart" . }}'
+    app.kubernetes.io/version: '{{ .Chart.AppVersion  }}'
+  name: orderly-ape-influxdb-admin-role
+rules:
+  - apiGroups:
+      - ape.reviewsignal.com
+    resources:
+      - influxdbs
+    verbs:
+      - '*'
+  - apiGroups:
+      - ape.reviewsignal.com
+    resources:
+      - influxdbs/status
+    verbs:
+      - get
+# This rule is not used by the project orderly-ape itself.
+# It is provided to allow the cluster admin to help manage permissions for users.
+#
+# Grants permissions to create, update, and delete resources within the ape.reviewsignal.com.
+# This role is intended for users who need to manage these resources
+# but should not control RBAC or manage permissions for others.
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: orderly-ape
+    app.kubernetes.io/managed-by: '{{ .Release.Service }}'
+    helm.sh/chart: '{{ include "orderly-ape.chart" . }}'
+    app.kubernetes.io/version: '{{ .Chart.AppVersion  }}'
+  name: orderly-ape-influxdb-editor-role
+rules:
+  - apiGroups:
+      - ape.reviewsignal.com
+    resources:
+      - influxdbs
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - ape.reviewsignal.com
+    resources:
+      - influxdbs/status
+    verbs:
+      - get
+# This rule is not used by the project orderly-ape itself.
+# It is provided to allow the cluster admin to help manage permissions for users.
+#
+# Grants read-only access to ape.reviewsignal.com resources.
+# This role is intended for users who need visibility into these resources
+# without permissions to modify them. It is ideal for monitoring purposes and limited-access viewing.
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: orderly-ape
+    app.kubernetes.io/managed-by: '{{ .Release.Service }}'
+    helm.sh/chart: '{{ include "orderly-ape.chart" . }}'
+    app.kubernetes.io/version: '{{ .Chart.AppVersion  }}'
+  name: orderly-ape-influxdb-viewer-role
+rules:
+  - apiGroups:
+      - ape.reviewsignal.com
+    resources:
+      - influxdbs
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - ape.reviewsignal.com
+    resources:
+      - influxdbs/status
+    verbs:
+      - get
+---
+# permissions to do leader election.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  labels:
+    app.kubernetes.io/name: orderly-ape
+    app.kubernetes.io/managed-by: '{{ .Release.Service }}'
+    helm.sh/chart: '{{ include "orderly-ape.chart" . }}'
+    app.kubernetes.io/version: '{{ .Chart.AppVersion  }}'
+  name: orderly-ape-leader-election-role
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - configmaps
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - patch
+      - delete
+  - apiGroups:
+      - coordination.k8s.io
+    resources:
+      - leases
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - patch
+      - delete
+  - apiGroups:
+      - ""
+    resources:
+      - events
+    verbs:
+      - create
+      - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: orderly-ape-metrics-auth-role
+  labels:
+    helm.sh/chart: '{{ include "orderly-ape.chart" . }}'
+    app.kubernetes.io/version: '{{ .Chart.AppVersion  }}'
+    app.kubernetes.io/managed-by: '{{ .Release.Service }}'
+rules:
+  - apiGroups:
+      - authentication.k8s.io
+    resources:
+      - tokenreviews
+    verbs:
+      - create
+  - apiGroups:
+      - authorization.k8s.io
+    resources:
+      - subjectaccessreviews
+    verbs:
+      - create
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: orderly-ape-metrics-reader
+  labels:
+    helm.sh/chart: '{{ include "orderly-ape.chart" . }}'
+    app.kubernetes.io/version: '{{ .Chart.AppVersion  }}'
+    app.kubernetes.io/managed-by: '{{ .Release.Service }}'
+rules:
+  - nonResourceURLs:
+      - "/metrics"
+    verbs:
+      - get
+# This rule is not used by the project orderly-ape itself.
+# It is provided to allow the cluster admin to help manage permissions for users.
+#
+# Grants full permissions ('*') over ape.reviewsignal.com.
+# This role is intended for users authorized to modify roles and bindings within the cluster,
+# enabling them to delegate specific permissions to other users or groups as needed.
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: orderly-ape
+    app.kubernetes.io/managed-by: '{{ .Release.Service }}'
+    helm.sh/chart: '{{ include "orderly-ape.chart" . }}'
+    app.kubernetes.io/version: '{{ .Chart.AppVersion  }}'
+  name: orderly-ape-testrun-admin-role
+rules:
+  - apiGroups:
+      - ape.reviewsignal.com
+    resources:
+      - testruns
+    verbs:
+      - '*'
+  - apiGroups:
+      - ape.reviewsignal.com
+    resources:
+      - testruns/status
+    verbs:
+      - get
+# This rule is not used by the project orderly-ape itself.
+# It is provided to allow the cluster admin to help manage permissions for users.
+#
+# Grants permissions to create, update, and delete resources within the ape.reviewsignal.com.
+# This role is intended for users who need to manage these resources
+# but should not control RBAC or manage permissions for others.
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: orderly-ape
+    app.kubernetes.io/managed-by: '{{ .Release.Service }}'
+    helm.sh/chart: '{{ include "orderly-ape.chart" . }}'
+    app.kubernetes.io/version: '{{ .Chart.AppVersion  }}'
+  name: orderly-ape-testrun-editor-role
+rules:
+  - apiGroups:
+      - ape.reviewsignal.com
+    resources:
+      - testruns
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - ape.reviewsignal.com
+    resources:
+      - testruns/status
+    verbs:
+      - get
+# This rule is not used by the project orderly-ape itself.
+# It is provided to allow the cluster admin to help manage permissions for users.
+#
+# Grants read-only access to ape.reviewsignal.com resources.
+# This role is intended for users who need visibility into these resources
+# without permissions to modify them. It is ideal for monitoring purposes and limited-access viewing.
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: orderly-ape
+    app.kubernetes.io/managed-by: '{{ .Release.Service }}'
+    helm.sh/chart: '{{ include "orderly-ape.chart" . }}'
+    app.kubernetes.io/version: '{{ .Chart.AppVersion  }}'
+  name: orderly-ape-testrun-viewer-role
+rules:
+  - apiGroups:
+      - ape.reviewsignal.com
+    resources:
+      - testruns
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - ape.reviewsignal.com
+    resources:
+      - testruns/status
+    verbs:
+      - get
+# This ClusterRole grants permissions needed for running k6 tests in worker clusters.
+# It is intended to be bound to service accounts that execute test runs.
+#
+# Permissions include:
+# - Creating Jobs, Secrets, and PodDisruptionBudgets for test execution
+# - Reading Pods and patching Pods/proxy for test coordination
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: orderly-ape
+    app.kubernetes.io/managed-by: '{{ .Release.Service }}'
+    helm.sh/chart: '{{ include "orderly-ape.chart" . }}'
+    app.kubernetes.io/version: '{{ .Chart.AppVersion  }}'
+  name: orderly-ape-testrun-worker-role
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - secrets
+    verbs:
+      - create
+  - apiGroups:
+      - batch
+    resources:
+      - jobs
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - delete
+  - apiGroups:
+      - policy
+    resources:
+      - poddisruptionbudgets
+    verbs:
+      - create
+  - apiGroups:
+      - ""
+    resources:
+      - pods
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - ""
+    resources:
+      - pods/proxy
+    verbs:
+      - patch
+# This rule is not used by the project orderly-ape itself.
+# It is provided to allow the cluster admin to help manage permissions for users.
+#
+# Grants full permissions ('*') over ape.reviewsignal.com.
+# This role is intended for users authorized to modify roles and bindings within the cluster,
+# enabling them to delegate specific permissions to other users or groups as needed.
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: orderly-ape
+    app.kubernetes.io/managed-by: '{{ .Release.Service }}'
+    helm.sh/chart: '{{ include "orderly-ape.chart" . }}'
+    app.kubernetes.io/version: '{{ .Chart.AppVersion  }}'
+  name: orderly-ape-testscenario-admin-role
+rules:
+  - apiGroups:
+      - ape.reviewsignal.com
+    resources:
+      - testscenarios
+    verbs:
+      - '*'
+  - apiGroups:
+      - ape.reviewsignal.com
+    resources:
+      - testscenarios/status
+    verbs:
+      - get
+# This rule is not used by the project orderly-ape itself.
+# It is provided to allow the cluster admin to help manage permissions for users.
+#
+# Grants permissions to create, update, and delete resources within the ape.reviewsignal.com.
+# This role is intended for users who need to manage these resources
+# but should not control RBAC or manage permissions for others.
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: orderly-ape
+    app.kubernetes.io/managed-by: '{{ .Release.Service }}'
+    helm.sh/chart: '{{ include "orderly-ape.chart" . }}'
+    app.kubernetes.io/version: '{{ .Chart.AppVersion  }}'
+  name: orderly-ape-testscenario-editor-role
+rules:
+  - apiGroups:
+      - ape.reviewsignal.com
+    resources:
+      - testscenarios
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - ape.reviewsignal.com
+    resources:
+      - testscenarios/status
+    verbs:
+      - get
+# This rule is not used by the project orderly-ape itself.
+# It is provided to allow the cluster admin to help manage permissions for users.
+#
+# Grants read-only access to ape.reviewsignal.com resources.
+# This role is intended for users who need visibility into these resources
+# without permissions to modify them. It is ideal for monitoring purposes and limited-access viewing.
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: orderly-ape
+    app.kubernetes.io/managed-by: '{{ .Release.Service }}'
+    helm.sh/chart: '{{ include "orderly-ape.chart" . }}'
+    app.kubernetes.io/version: '{{ .Chart.AppVersion  }}'
+  name: orderly-ape-testscenario-viewer-role
+rules:
+  - apiGroups:
+      - ape.reviewsignal.com
+    resources:
+      - testscenarios
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - ape.reviewsignal.com
+    resources:
+      - testscenarios/status
+    verbs:
+      - get
+# This rule is not used by the project orderly-ape itself.
+# It is provided to allow the cluster admin to help manage permissions for users.
+#
+# Grants full permissions ('*') over ape.reviewsignal.com.
+# This role is intended for users authorized to modify roles and bindings within the cluster,
+# enabling them to delegate specific permissions to other users or groups as needed.
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: orderly-ape
+    app.kubernetes.io/managed-by: '{{ .Release.Service }}'
+    helm.sh/chart: '{{ include "orderly-ape.chart" . }}'
+    app.kubernetes.io/version: '{{ .Chart.AppVersion  }}'
+  name: orderly-ape-user-admin-role
+rules:
+  - apiGroups:
+      - ape.reviewsignal.com
+    resources:
+      - users
+    verbs:
+      - '*'
+  - apiGroups:
+      - ape.reviewsignal.com
+    resources:
+      - users/status
+    verbs:
+      - get
+# This rule is not used by the project orderly-ape itself.
+# It is provided to allow the cluster admin to help manage permissions for users.
+#
+# Grants permissions to create, update, and delete resources within the ape.reviewsignal.com.
+# This role is intended for users who need to manage these resources
+# but should not control RBAC or manage permissions for others.
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: orderly-ape
+    app.kubernetes.io/managed-by: '{{ .Release.Service }}'
+    helm.sh/chart: '{{ include "orderly-ape.chart" . }}'
+    app.kubernetes.io/version: '{{ .Chart.AppVersion  }}'
+  name: orderly-ape-user-editor-role
+rules:
+  - apiGroups:
+      - ape.reviewsignal.com
+    resources:
+      - users
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - ape.reviewsignal.com
+    resources:
+      - users/status
+    verbs:
+      - get
+# This rule is not used by the project orderly-ape itself.
+# It is provided to allow the cluster admin to help manage permissions for users.
+#
+# Grants read-only access to ape.reviewsignal.com resources.
+# This role is intended for users who need visibility into these resources
+# without permissions to modify them. It is ideal for monitoring purposes and limited-access viewing.
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: orderly-ape
+    app.kubernetes.io/managed-by: '{{ .Release.Service }}'
+    helm.sh/chart: '{{ include "orderly-ape.chart" . }}'
+    app.kubernetes.io/version: '{{ .Chart.AppVersion  }}'
+  name: orderly-ape-user-viewer-role
+rules:
+  - apiGroups:
+      - ape.reviewsignal.com
+    resources:
+      - users
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - ape.reviewsignal.com
+    resources:
+      - users/status
+    verbs:
+      - get
+# This rule is not used by the project orderly-ape itself.
+# It is provided to allow the cluster admin to help manage permissions for users.
+#
+# Grants full permissions ('*') over ape.reviewsignal.com.
+# This role is intended for users authorized to modify roles and bindings within the cluster,
+# enabling them to delegate specific permissions to other users or groups as needed.
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: orderly-ape
+    app.kubernetes.io/managed-by: '{{ .Release.Service }}'
+    helm.sh/chart: '{{ include "orderly-ape.chart" . }}'
+    app.kubernetes.io/version: '{{ .Chart.AppVersion  }}'
+  name: orderly-ape-worker-admin-role
+rules:
+  - apiGroups:
+      - ape.reviewsignal.com
+    resources:
+      - workers
+    verbs:
+      - '*'
+  - apiGroups:
+      - ape.reviewsignal.com
+    resources:
+      - workers/status
+    verbs:
+      - get
+# This rule is not used by the project orderly-ape itself.
+# It is provided to allow the cluster admin to help manage permissions for users.
+#
+# Grants permissions to create, update, and delete resources within the ape.reviewsignal.com.
+# This role is intended for users who need to manage these resources
+# but should not control RBAC or manage permissions for others.
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: orderly-ape
+    app.kubernetes.io/managed-by: '{{ .Release.Service }}'
+    helm.sh/chart: '{{ include "orderly-ape.chart" . }}'
+    app.kubernetes.io/version: '{{ .Chart.AppVersion  }}'
+  name: orderly-ape-worker-editor-role
+rules:
+  - apiGroups:
+      - ape.reviewsignal.com
+    resources:
+      - workers
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - ape.reviewsignal.com
+    resources:
+      - workers/status
+    verbs:
+      - get
+# This rule is not used by the project orderly-ape itself.
+# It is provided to allow the cluster admin to help manage permissions for users.
+#
+# Grants read-only access to ape.reviewsignal.com resources.
+# This role is intended for users who need visibility into these resources
+# without permissions to modify them. It is ideal for monitoring purposes and limited-access viewing.
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: orderly-ape
+    app.kubernetes.io/managed-by: '{{ .Release.Service }}'
+    helm.sh/chart: '{{ include "orderly-ape.chart" . }}'
+    app.kubernetes.io/version: '{{ .Chart.AppVersion  }}'
+  name: orderly-ape-worker-viewer-role
+rules:
+  - apiGroups:
+      - ape.reviewsignal.com
+    resources:
+      - workers
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - ape.reviewsignal.com
+    resources:
+      - workers/status
+    verbs:
+      - get
+{{- end }}

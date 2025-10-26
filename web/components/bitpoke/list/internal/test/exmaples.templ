@@ -1,0 +1,302 @@
+// SPDX-License-Identifier: MIT
+// SPDX-FileCopyrightText: Copyright (c) 2025 ReviewSignal
+
+package list_test
+
+import (
+	"github.com/ReviewSignal/orderly-ape/web/components/bitpoke/list"
+	"github.com/ReviewSignal/orderly-ape/web/components/templui/checkbox"
+	"github.com/ReviewSignal/orderly-ape/web/components/templui/input"
+	"github.com/ReviewSignal/orderly-ape/web/components/templui/label"
+)
+
+templ ExamplePage() {
+	<!DOCTYPE html>
+	<html lang="en">
+		<head>
+			<meta charset="UTF-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+			<title>EditableList Component Examples</title>
+			<link rel="stylesheet" href="/public/style.css"/>
+		</head>
+		<body class="p-8 bg-background">
+			<div class="max-w-4xl mx-auto space-y-8">
+				<h1 class="text-3xl font-bold mb-6">EditableList Component Examples</h1>
+				<!-- Example 1: Simple editable list -->
+				<div class="space-y-4">
+					<h2 class="text-2xl font-semibold">Example 1: Simple Editable List</h2>
+					<p class="text-muted-foreground">A simple list that aggregates values as a JSON array</p>
+					<form class="space-y-4 border p-4 rounded-lg">
+						@list.EditableList(list.EditableListProps{Name: "simple-list"}) {
+							@list.ListItem(list.ListItemProps{}) {
+								@input.Input(input.Props{
+									Placeholder: "Enter value",
+									Attributes: templ.Attributes{
+										"data-editable-list-item-input": "",
+									},
+								})
+							}
+						}
+						<div class="mt-4 p-4 bg-muted rounded">
+							<strong>Hidden Input Value:</strong>
+							<pre class="mt-2 text-sm" id="simple-list-output">[]</pre>
+						</div>
+					</form>
+				</div>
+				<!-- Example 2: Simple JSON objects list -->
+				<div class="space-y-4">
+					<h2 class="text-2xl font-semibold">Example 2: Simple JSON Objects List</h2>
+					<p class="text-muted-foreground">List items with a named field that aggregates as array of objects</p>
+					<form class="space-y-4 border p-4 rounded-lg">
+						@list.EditableList(list.EditableListProps{Name: "json-list"}) {
+							@list.ListItem(list.ListItemProps{}) {
+								@input.Input(input.Props{Name: "name", Placeholder: "Enter name"})
+							}
+						}
+						<div class="mt-4 p-4 bg-muted rounded">
+							<strong>Hidden Input Value:</strong>
+							<pre class="mt-2 text-sm" id="json-list-output">[]</pre>
+						</div>
+					</form>
+				</div>
+				<!-- Example 3: Complex JSON objects list -->
+				<div class="space-y-4">
+					<h2 class="text-2xl font-semibold">Example 3: Complex JSON Objects List</h2>
+					<p class="text-muted-foreground">List items with multiple fields that aggregate as array of objects</p>
+					<form class="space-y-4 border p-4 rounded-lg">
+						@list.EditableList(list.EditableListProps{Name: "complex-list"}) {
+							@list.ListItem(list.ListItemProps{}) {
+								@input.Input(input.Props{Name: "name", Placeholder: "Enter name"})
+								<div class="flex items-center gap-2">
+									@checkbox.Checkbox(checkbox.Props{
+										Name:  "agreements",
+										Value: "terms",
+									})
+									@label.Label(label.Props{}) {
+										Accept terms and conditions
+									}
+								</div>
+							}
+						}
+						<div class="mt-4 p-4 bg-muted rounded">
+							<strong>Hidden Input Value:</strong>
+							<pre class="mt-2 text-sm" id="complex-list-output">[]</pre>
+						</div>
+					</form>
+				</div>
+				<!-- Example 4: Complex JSON object (keyed by name input) -->
+				<div class="space-y-4">
+					<h2 class="text-2xl font-semibold">Example 4: Complex JSON Object</h2>
+					<p class="text-muted-foreground">List items with name input (no name attribute) and other fields, aggregates as object keyed by name input</p>
+					<form class="space-y-4 border p-4 rounded-lg">
+						@list.EditableList(list.EditableListProps{Name: "keyed-list"}) {
+							@list.ListItem(list.ListItemProps{}) {
+								@input.Input(input.Props{Placeholder: "Enter key"})
+								<div class="flex items-center gap-2">
+									@checkbox.Checkbox(checkbox.Props{
+										Name:  "agreements",
+										Value: "terms",
+									})
+									@label.Label(label.Props{}) {
+										Accept terms and conditions
+									}
+								</div>
+							}
+						}
+						<div class="mt-4 p-4 bg-muted rounded">
+							<strong>Hidden Input Value:</strong>
+							<pre class="mt-2 text-sm" id="keyed-list-output">{  }</pre>
+						</div>
+					</form>
+				</div>
+				<!-- Example 5: List with Initial Simple Values -->
+				<div class="space-y-4">
+					<h2 class="text-2xl font-semibold">Example 5: List with Initial Simple Values</h2>
+					<p class="text-muted-foreground">List pre-populated with initial values</p>
+					<form class="space-y-4 border p-4 rounded-lg">
+						@list.EditableList(list.EditableListProps{
+							Name:  "list-with-values",
+							Value: `["apple", "banana", "cherry"]`,
+						}) {
+							@list.ListItem(list.ListItemProps{}) {
+								@input.Input(input.Props{Placeholder: "Enter fruit"})
+							}
+						}
+						<div class="mt-4 p-4 bg-muted rounded">
+							<strong>Hidden Input Value:</strong>
+							<pre class="mt-2 text-sm" id="list-with-values-output">[]</pre>
+						</div>
+					</form>
+				</div>
+				<!-- Example 6: List with Initial Object Values -->
+				<div class="space-y-4">
+					<h2 class="text-2xl font-semibold">Example 6: List with Initial Object Values</h2>
+					<p class="text-muted-foreground">List pre-populated with initial object values</p>
+					<form class="space-y-4 border p-4 rounded-lg">
+						@list.EditableList(list.EditableListProps{
+							Name:  "list-with-objects",
+							Value: `[{"name": "Alice", "agreements": true}, {"name": "Bob", "agreements": false}]`,
+						}) {
+							@list.ListItem(list.ListItemProps{}) {
+								@input.Input(input.Props{Name: "name", Placeholder: "Enter name"})
+								<div class="flex items-center gap-2">
+									@checkbox.Checkbox(checkbox.Props{
+										Name:  "agreements",
+										Value: "terms",
+									})
+									@label.Label(label.Props{}) {
+										Accept terms and conditions
+									}
+								</div>
+							}
+						}
+						<div class="mt-4 p-4 bg-muted rounded">
+							<strong>Hidden Input Value:</strong>
+							<pre class="mt-2 text-sm" id="list-with-objects-output">[]</pre>
+						</div>
+					</form>
+				</div>
+				<!-- Example 7: List with Select Inputs -->
+				<div class="space-y-4">
+					<h2 class="text-2xl font-semibold">Example 7: List with Select Inputs</h2>
+					<p class="text-muted-foreground">List with dropdown select elements</p>
+					<form class="space-y-4 border p-4 rounded-lg">
+						@list.EditableList(list.EditableListProps{
+							Name:  "list-with-select",
+							Value: `[{"name": "Alice", "color": "red"}, {"name": "Bob", "color": "blue"}]`,
+						}) {
+							@list.ListItem(list.ListItemProps{}) {
+								@input.Input(input.Props{Name: "name", Placeholder: "Enter name"})
+								<select name="color" class="border rounded p-1 w-full">
+									<option value="">Select color</option>
+									<option value="red">Red</option>
+									<option value="blue">Blue</option>
+									<option value="green">Green</option>
+									<option value="yellow">Yellow</option>
+								</select>
+							}
+						}
+						<div class="mt-4 p-4 bg-muted rounded">
+							<strong>Hidden Input Value:</strong>
+							<pre class="mt-2 text-sm" id="list-with-select-output">[]</pre>
+						</div>
+					</form>
+				</div>
+				<!-- Example 8: List with Multi-Select -->
+				<div class="space-y-4">
+					<h2 class="text-2xl font-semibold">Example 8: List with Multi-Select</h2>
+					<p class="text-muted-foreground">List with multi-select elements for multiple selections</p>
+					<form class="space-y-4 border p-4 rounded-lg">
+						@list.EditableList(list.EditableListProps{
+							Name:  "list-with-multiselect",
+							Value: `[{"name": "Alice", "tags": ["tag1", "tag2"]}, {"name": "Bob", "tags": ["tag3"]}]`,
+						}) {
+							@list.ListItem(list.ListItemProps{}) {
+								@input.Input(input.Props{Name: "name", Placeholder: "Enter name"})
+								<select name="tags" multiple class="border rounded p-1 w-full" size="3">
+									<option value="tag1">Tag 1</option>
+									<option value="tag2">Tag 2</option>
+									<option value="tag3">Tag 3</option>
+									<option value="tag4">Tag 4</option>
+								</select>
+							}
+						}
+						<div class="mt-4 p-4 bg-muted rounded">
+							<strong>Hidden Input Value:</strong>
+							<pre class="mt-2 text-sm" id="list-with-multiselect-output">[]</pre>
+						</div>
+					</form>
+				</div>
+				<!-- Example 9: List with MaxItems -->
+				<div class="space-y-4">
+					<h2 class="text-2xl font-semibold">Example 9: List with MaxItems</h2>
+					<p class="text-muted-foreground">List limited to a maximum of 3 items (add button hides when limit is reached)</p>
+					<form class="space-y-4 border p-4 rounded-lg">
+						@list.EditableList(list.EditableListProps{
+							Name:     "list-with-max-items",
+							MaxItems: 3,
+						}) {
+							@list.ListItem(list.ListItemProps{}) {
+								@input.Input(input.Props{Placeholder: "Enter value (max 3 items)"})
+							}
+						}
+						<div class="mt-4 p-4 bg-muted rounded">
+							<strong>Hidden Input Value:</strong>
+							<pre class="mt-2 text-sm" id="list-with-max-items-output">[]</pre>
+						</div>
+					</form>
+				</div>
+				<!-- Example 10: List with ExtraItems -->
+				<div class="space-y-4">
+					<h2 class="text-2xl font-semibold">Example 10: List with ExtraItems</h2>
+					<p class="text-muted-foreground">List with 3 empty items pre-rendered (ExtraItems=3)</p>
+					<form class="space-y-4 border p-4 rounded-lg">
+						@list.EditableList(list.EditableListProps{
+							Name:       "list-with-extra-items",
+							ExtraItems: 3,
+						}) {
+							@list.ListItem(list.ListItemProps{}) {
+								@input.Input(input.Props{Placeholder: "Enter value"})
+							}
+						}
+						<div class="mt-4 p-4 bg-muted rounded">
+							<strong>Hidden Input Value:</strong>
+							<pre class="mt-2 text-sm" id="list-with-extra-items-output">[]</pre>
+						</div>
+					</form>
+				</div>
+				<!-- Example 11: ReadOnly List -->
+				<div class="space-y-4">
+					<h2 class="text-2xl font-semibold">Example 11: ReadOnly List</h2>
+					<p class="text-muted-foreground">List in read-only mode (no add button, inputs are readonly)</p>
+					<form class="space-y-4 border p-4 rounded-lg">
+						@list.EditableList(list.EditableListProps{
+							Name:     "list-readonly",
+							ReadOnly: true,
+							Value:    `[{"name": "Alice", "role": "admin"}, {"name": "Bob", "role": "user"}]`,
+						}) {
+							@list.ListItem(list.ListItemProps{}) {
+								@input.Input(input.Props{Name: "name", Placeholder: "Enter name"})
+								<select name="role" class="border rounded p-1 w-full">
+									<option value="">Select role</option>
+									<option value="admin">Admin</option>
+									<option value="user">User</option>
+								</select>
+							}
+						}
+						<div class="mt-4 p-4 bg-muted rounded">
+							<strong>Hidden Input Value:</strong>
+							<pre class="mt-2 text-sm" id="list-readonly-output">[]</pre>
+						</div>
+					</form>
+				</div>
+			</div>
+			@list.Script()
+			<script nonce={ templ.GetNonce(ctx) }>
+				// Update output displays when hidden inputs change
+				['simple-list', 'json-list', 'complex-list', 'keyed-list', 'list-with-values', 'list-with-objects', 'list-with-select', 'list-with-multiselect', 'list-with-max-items', 'list-with-extra-items', 'list-readonly'].forEach(name => {
+					const input = document.querySelector(`input[name="${name}"]`);
+					const output = document.getElementById(`${name}-output`);
+					if (input && output) {
+						// Initial display
+						output.textContent = input.value || (name === 'keyed-list' ? '{}' : '[]');
+						
+						// Update on change
+						const observer = new MutationObserver(() => {
+							output.textContent = input.value || (name === 'keyed-list' ? '{}' : '[]');
+						});
+						observer.observe(input, { attributes: true, attributeFilter: ['value'] });
+						
+						input.addEventListener('input', () => {
+							output.textContent = input.value || (name === 'keyed-list' ? '{}' : '[]');
+						});
+						
+						input.addEventListener('change', () => {
+							output.textContent = input.value || (name === 'keyed-list' ? '{}' : '[]');
+						});
+					}
+				});
+			</script>
+		</body>
+	</html>
+}

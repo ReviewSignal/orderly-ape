@@ -1,0 +1,262 @@
+// SPDX-License-Identifier: MIT
+// SPDX-FileCopyrightText: Copyright (c) 2025 ReviewSignal
+
+package testruns
+
+import (
+	"github.com/ReviewSignal/orderly-ape/internal/web/datatable"
+	"github.com/ReviewSignal/orderly-ape/internal/web/entity"
+	"github.com/ReviewSignal/orderly-ape/internal/web/forms"
+
+	"github.com/ReviewSignal/orderly-ape/web/components/templui/badge"
+	"github.com/ReviewSignal/orderly-ape/web/components/templui/code"
+	"github.com/ReviewSignal/orderly-ape/web/components/templui/icon"
+
+	apev1 "github.com/ReviewSignal/orderly-ape/api/v1"
+	"github.com/ReviewSignal/orderly-ape/web/utils"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+)
+
+templ IconStart(props ...icon.Props) {
+	{{
+	p := icon.Props{}
+	if len(props) > 0 {
+		p = props[0]
+	}
+	p.Stroke = "none"
+	p.Fill = "currentColor"
+	}}
+	@icon.Play(p)
+}
+
+templ IconStop(props ...icon.Props) {
+	{{
+	p := icon.Props{}
+	if len(props) > 0 {
+		p = props[0]
+	}
+	p.Stroke = "none"
+	p.Fill = "currentColor"
+	}}
+	@icon.Square(p)
+}
+
+templ (c *TestRunsController) TestRunName(o datatable.Entry) {
+	@datatable.ObjectCellInlineEdit(o) {
+		if tr, ok := o.(entity.TestRun); ok {
+			<div class="flex items-center gap-1">
+				<span class="text-xs font-mono text-muted-foreground">{ c.GetScenarioName(*tr.Spec.Scenario) }</span>
+			</div>
+		}
+	}
+}
+
+templ (c *TestRunsController) TestRunRuntime(o datatable.Entry) {
+	if tr, ok := o.(entity.TestRun); ok {
+		<div class="flex gap-1 items-center text-sm font-mono" title="InfluxDB">
+			<span class="sr-only">InfluxDB</span>
+			@icon.Database(icon.Props{Class: "size-4 shrink-0"})
+			<span class="text-muted-foreground">
+				{ c.GetInfluxDBName(*tr.Spec.InfluxDB) }/{ utils.Default(tr.Spec.InfluxDBBucket, "default") }
+			</span>
+		</div>
+		<div class="mt-1 flex flex-wrap gap-1 items-center text-sm">
+			<span title="Locations">
+				@icon.Globe(icon.Props{Class: "size-4 shrink-0"})
+			</span>
+			if len(tr.Spec.Workers) > 0 {
+				@locationsCodeWidget(tr.Spec.Workers, c.GetLocationName)
+			} else {
+				// Display scenario locations when test run locations are empty
+				@c.TestRunScenarioLocations(tr)
+			}
+		</div>
+	}
+}
+
+templ (c *TestRunsController) TestRunScenarioLocations(tr entity.TestRun) {
+	{{
+	scenario := &apev1.TestScenario{}
+	if tr.Spec.Scenario != nil {
+		c.Get(ctx, client.ObjectKey{
+			Namespace: tr.Spec.Scenario.Namespace,
+			Name:      tr.Spec.Scenario.Name,
+		}, scenario)
+	}
+	}}
+	if len(scenario.Spec.Workers) > 0 {
+		@locationsCodeWidget(scenario.Spec.Workers, c.GetLocationName)
+	} else {
+		<span class="text-muted-foreground">No locations</span>
+	}
+}
+
+templ TestRunTarget(o datatable.Entry) {
+	if tr, ok := o.(entity.TestRun); ok {
+		<div class="text-sm text-gray-700">
+			{ tr.Spec.Target }
+		</div>
+	}
+}
+
+templ TestRunDashboard(o datatable.Entry) {
+	if tr, ok := o.(entity.TestRun); ok {
+		if tr.Status.DashboardUID != "" {
+			<a href={ templ.URL("/results/" + tr.Name) } target="_blank" rel="noopener noreferrer" class="inline-flex items-center text-muted-foreground hover:text-foreground transition-colors">
+				@icon.ChartNoAxesCombined(icon.Props{Class: "size-5 shrink-0"})
+			</a>
+		}
+	}
+}
+
+// InfluxDBBucketChoosers renders bucket choosers for all InfluxDBs
+templ InfluxDBSelector(s *forms.Section, _ ...forms.HTMLBaseProps) {
+	{{
+	data := map[string]any{
+		"influxdb": s.Fields.ByName("influxdb").Value(),
+	}
+	}}
+	<div class="space-y-4" x-data={ templ.JSONString(data) }>
+		@s.Fields.ByName("influxdb").Component(forms.HTMLBaseProps{}) {
+			@s.Fields.ByName("influxdb").Widget(forms.HTMLBaseProps{
+				Attributes: templ.Attributes{
+					"@change": "influxdb = $event.target.value",
+				},
+			})
+		}
+		for _, field := range s.Fields {
+			{{
+			if field.Name == "influxdb" {
+				continue
+			}
+			}}
+			@field.Component(forms.HTMLBaseProps{
+				Attributes: templ.Attributes{
+					"x-cloak": true,
+					"x-show":  `"influxdb_bucket[" + influxdb + "]" == "` + field.Name + `"`,
+				},
+			}) {
+				@field.Widget(forms.HTMLBaseProps{})
+			}
+		}
+	</div>
+}
+
+// ScenarioLocationsWidget creates a widget to display scenario locations as badges
+func ScenarioLocationsWidget(workers []apev1.TestRunWorkerSpec, getLocationName func(apev1.ObjectReference) string) forms.FieldComponent {
+	return func(f *forms.Field, props ...forms.HTMLBaseProps) templ.Component {
+		return scenarioLocationWidget(workers, getLocationName)
+	}
+}
+
+// ScenarioEnvVarsWidget creates a widget to display scenario env vars as read-only inputs
+func ScenarioEnvVarsWidget(envVars []apev1.EnvVar) forms.FieldComponent {
+	return func(f *forms.Field, props ...forms.HTMLBaseProps) templ.Component {
+		return scenarioEnvVarsWidget(envVars)
+	}
+}
+
+// ScenarioLabelsWidget creates a widget to display scenario labels as read-only inputs
+func ScenarioLabelsWidget(labels map[string]string) forms.FieldComponent {
+	return func(f *forms.Field, props ...forms.HTMLBaseProps) templ.Component {
+		return scenarioLabelsWidget(labels)
+	}
+}
+
+func TestRunLocationsDisplayWidget(workers []apev1.TestRunWorkerSpec, getLocationName func(apev1.ObjectReference) string) forms.FieldComponent {
+	return func(f *forms.Field, props ...forms.HTMLBaseProps) templ.Component {
+		return testRunLocationsDisplayWidget(workers, getLocationName)
+	}
+}
+
+templ testRunLocationsDisplayWidget(workers []apev1.TestRunWorkerSpec, getLocationName func(apev1.ObjectReference) string) {
+	<div class="mb-2 space-x-1">
+		@locationsCodeWidget(workers, getLocationName)
+	</div>
+}
+
+func TestRunEnvVarsDisplayWidget(envVars []apev1.EnvVar) forms.FieldComponent {
+	return func(f *forms.Field, props ...forms.HTMLBaseProps) templ.Component {
+		return envVarsCodeWidget(envVars)
+	}
+}
+
+func TestRunLabelsDisplayWidget(labels map[string]string) forms.FieldComponent {
+	return func(f *forms.Field, props ...forms.HTMLBaseProps) templ.Component {
+		return labelsCodeWidget(labels)
+	}
+}
+
+// scenarioLocationWidget shows scenario locations as badges
+templ scenarioLocationWidget(workers []apev1.TestRunWorkerSpec, getLocationName func(apev1.ObjectReference) string) {
+	if len(workers) > 0 {
+		<div class="mb-2 space-x-1">
+			<span class="text-sm text-muted-foreground">If left empty, the following scenario locations will be used:</span>
+			@locationsCodeWidget(workers, getLocationName)
+		</div>
+	}
+}
+
+templ locationsCodeWidget(workers []apev1.TestRunWorkerSpec, getLocationName func(apev1.ObjectReference) string) {
+	for _, worker := range workers {
+		{{ workerName := getLocationName(worker.ObjectReference) }}
+		if workerName != "" {
+			@badge.Badge(badge.Props{
+				Variant: badge.VariantOutline,
+			}) {
+				if worker.NumWorkers > 1 {
+					<span class="text-muted-foreground">{ worker.NumWorkers } ×</span>
+				}
+				{ workerName }
+			}
+		}
+	}
+}
+
+templ envVarsCodeWidget(envVars []apev1.EnvVar) {
+	@code.Code() {
+		if len(envVars) > 0 {
+			for _, ev := range envVars {
+				{ ev.Name } = { ev.Value }{ "\n" }
+			}
+		} else {
+			# No env vars
+		}
+	}
+}
+
+templ labelsCodeWidget(labels map[string]string) {
+	@code.Code() {
+		if len(labels) > 0 {
+			for k, v := range labels {
+				{ k } = { v }{ "\n" }
+			}
+		} else {
+			# No labels
+		}
+	}
+}
+
+// scenarioEnvVarsWidget shows scenario env vars as read-only inputs
+templ scenarioEnvVarsWidget(envVars []apev1.EnvVar) {
+	if len(envVars) > 0 {
+		<div class="mb-2">
+			<span class="text-sm text-muted-foreground">
+				Will be merged with the following scenario env vars:
+			</span>
+		</div>
+		@envVarsCodeWidget(envVars)
+	}
+}
+
+// scenarioLabelsWidget shows scenario labels as read-only inputs
+templ scenarioLabelsWidget(labels map[string]string) {
+	if len(labels) > 0 {
+		<div class="mb-2">
+			<span class="text-sm text-muted-foreground">
+				Will be merged with the following scenario labels:
+			</span>
+		</div>
+		@labelsCodeWidget(labels)
+	}
+}

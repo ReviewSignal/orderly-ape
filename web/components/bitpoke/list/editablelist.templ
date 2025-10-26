@@ -1,0 +1,151 @@
+// SPDX-License-Identifier: MIT
+// SPDX-FileCopyrightText: Copyright (c) 2025 ReviewSignal
+
+package list
+
+import (
+	"strconv"
+
+	"github.com/ReviewSignal/orderly-ape/web/components/templui/button"
+	"github.com/ReviewSignal/orderly-ape/web/components/templui/icon"
+	"github.com/ReviewSignal/orderly-ape/web/utils"
+	"k8s.io/apimachinery/pkg/util/json"
+)
+
+type EditableListProps struct {
+	ID         string
+	Name       string
+	Class      string
+	Attributes templ.Attributes
+	Disabled   bool
+	Required   bool
+	ReadOnly   bool
+	Value      string
+	MaxItems   int
+	ExtraItems int
+}
+
+type ListItemProps struct {
+	ID         string
+	Class      string
+	Attributes templ.Attributes
+}
+
+func isValidJSON(s string) bool {
+	if len(s) < 2 {
+		return false
+	}
+	if s == "null" || s == "true" || s == "false" {
+		return false
+	}
+	if s == "[]" || s == "{}" {
+		return true
+	}
+	if s[0] == '[' && s[len(s)-1] == ']' {
+		var arr []any
+		return json.Unmarshal([]byte(s), &arr) == nil
+	}
+	if s[0] == '{' && s[len(s)-1] == '}' {
+		var obj map[string]any
+		return json.Unmarshal([]byte(s), &obj) == nil
+	}
+	return false
+}
+
+templ EditableList(props ...EditableListProps) {
+	{{
+		var p EditableListProps
+		if len(props) > 0 {
+			p = props[0]
+		}
+		wrapperID := p.ID
+		if wrapperID == "" {
+			wrapperID = utils.RandomID()
+		}
+	}}
+	<div
+		id={ wrapperID }
+		class={ utils.TwMerge("editable-list w-full", p.Class) }
+		data-editable-list-name={ p.Name }
+		data-editable-list-disabled={ utils.If(p.Disabled, "true") }
+		data-editable-list-required={ utils.If(p.Required, "true") }
+		data-editable-list-readonly={ utils.If(p.ReadOnly, "true") }
+		if p.MaxItems > 0 {
+			data-editable-list-max-items={ strconv.Itoa(p.MaxItems) }
+		}
+		if p.ExtraItems > 0 {
+			data-editable-list-extra-items={ strconv.Itoa(p.ExtraItems) }
+		}
+		{ p.Attributes... }
+	>
+		<input
+			type="hidden"
+			if p.Name != "" {
+				name={ p.Name }
+			}
+			data-editable-list-hidden-input
+			required?={ p.Required }
+			value={ utils.IfElse(isValidJSON(p.Value), p.Value, "") }
+		/>
+		<div class="space-y-2" data-editable-list-items></div>
+		if !p.Disabled && !p.ReadOnly {
+			<div class="mt-2">
+				@button.Button(button.Props{
+					Type:    "button",
+					Variant: button.VariantOutline,
+					Size:    button.SizeSm,
+					Class:   "w-full",
+					Attributes: templ.Attributes{
+						"data-editable-list-add": "",
+					},
+				}) {
+					@icon.Plus(icon.Props{Size: 16, Class: "mr-2"})
+					Add Item
+				}
+			</div>
+		}
+		<template data-editable-list-template>
+			{ children... }
+		</template>
+	</div>
+}
+
+templ ListItem(props ...ListItemProps) {
+	{{
+		var p ListItemProps
+		if len(props) > 0 {
+			p = props[0]
+		}
+		itemID := p.ID
+		if itemID == "" {
+			itemID = utils.RandomID()
+		}
+	}}
+	<div
+		id={ itemID }
+		class={ utils.TwMerge("flex items-start gap-2", p.Class) }
+		data-editable-list-item
+		{ p.Attributes... }
+	>
+		<div class="flex-1 space-y-2" data-editable-list-item-content>
+			{ children... }
+		</div>
+		<div class="flex gap-1">
+			@button.Button(button.Props{
+				Type:    "button",
+				Variant: button.VariantGhost,
+				Size:    button.SizeIcon,
+				Attributes: templ.Attributes{
+					"data-editable-list-item-delete": "",
+					"title":                          "Delete",
+				},
+			}) {
+				@icon.Trash(icon.Props{Size: 16})
+			}
+		</div>
+	</div>
+}
+
+templ Script() {
+	<script defer nonce={ templ.GetNonce(ctx) } src={ "/public/js/list.min.js?v=" + utils.ScriptVersion }></script>
+}

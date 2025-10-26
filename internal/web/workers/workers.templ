@@ -1,0 +1,58 @@
+// SPDX-License-Identifier: MIT
+// SPDX-FileCopyrightText: Copyright (c) 2025 ReviewSignal
+
+package workers
+
+import (
+	"fmt"
+
+	"github.com/ReviewSignal/orderly-ape/internal/web/datatable"
+	"github.com/ReviewSignal/orderly-ape/internal/web/entity"
+)
+
+templ WorkerName(o datatable.Entry) {
+	{{ w := o.(entity.Worker) }}
+	@datatable.ObjectCellInlineEdit(o) {
+		<div class="flex items-center gap-1">
+			<span class="text-xs font-mono">
+				<span class="text-muted-foreground">Namespace:</span>
+				{ w.Spec.Namespace }
+			</span>
+		</div>
+	}
+}
+
+templ WorkerNodeSelector(o datatable.Entry) {
+	{{ w := o.(entity.Worker) }}
+	if len(w.Spec.NodeSelector) == 0 {
+		<span class="text-muted-foreground">None</span>
+	} else {
+		<div class="space-y-1">
+			for key, value := range w.Spec.NodeSelector {
+				<div class="text-sm font-mono">
+					<span class="text-muted-foreground">{ key }:</span>
+					<span class="font-semibold">{ value }</span>
+				</div>
+			}
+		</div>
+	}
+}
+
+templ WorkerTolerations(o datatable.Entry) {
+	{{ w := o.(entity.Worker) }}
+	if len(w.Spec.Tolerations) == 0 {
+		<span class="text-muted-foreground">None</span>
+	} else {
+		<div class="space-y-1">
+			for _, t := range w.Spec.Tolerations {
+				{{
+					tolStr := fmt.Sprintf("%s=%s:%s", t.Key, t.Value, t.Effect)
+					if t.Operator == "Exists" {
+						tolStr = fmt.Sprintf("%s:%s", t.Key, t.Effect)
+					}
+				}}
+				<div class="text-sm font-mono">{ tolStr }</div>
+			}
+		</div>
+	}
+}

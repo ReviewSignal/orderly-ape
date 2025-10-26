@@ -1,0 +1,15 @@
+## Append samples of your project ##
+resources:
+- v1_wordpress.yaml
+- v1_releasechannel.yaml
+- v1_mysqldatabase.yaml
+- v1_podresources.yaml
+- v1_podplacement.yaml
+- v1_mysqlschema.yaml
+- v1_mediastorage.yaml
+- v1_user.yaml
+- ape.reviewsignal.com_v1_worker.yaml
+- v1_testrun.yaml
+- v1_testscenario.yaml
+- v1_influxdb.yaml
+# +kubebuilder:scaffold:manifestskustomizesamples

@@ -1,0 +1,9 @@
+apiVersion: ape.reviewsignal.com/v1
+kind: TestScenario
+metadata:
+  labels:
+    app.kubernetes.io/name: orderly-ape
+    app.kubernetes.io/managed-by: kustomize
+  name: testscenario-sample
+spec:
+  # TODO(user): Add fields here

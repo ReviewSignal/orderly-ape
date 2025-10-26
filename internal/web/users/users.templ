@@ -1,0 +1,59 @@
+// SPDX-License-Identifier: MIT
+// SPDX-FileCopyrightText: Copyright (c) 2025 ReviewSignal
+
+package users
+
+import (
+	"crypto/sha256"
+	"fmt"
+	"strings"
+
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/ReviewSignal/orderly-ape/internal/web/entity"
+	"github.com/ReviewSignal/orderly-ape/web/components/templui/avatar"
+)
+
+func gravatarURL(email string) string {
+	if email == "" {
+		return ""
+	}
+	hash := fmt.Sprintf("%x", sha256.Sum256([]byte(email)))
+	return "https://www.gravatar.com/avatar/" + hash
+}
+
+func initials(name string) string {
+	parts := strings.Fields(name)
+	initials := ""
+	for i, part := range parts {
+		if i > 1 {
+			break
+		}
+		if len(part) > 0 {
+			initials += string([]rune(part)[0])
+		}
+	}
+	return strings.ToUpper(initials)
+}
+
+templ UserName(o client.Object) {
+	{{ User := o.(entity.User) }}
+	<div class="flex items-center gap-2">
+		@avatar.Avatar() {
+			@avatar.Image(avatar.ImageProps{
+				Src: gravatarURL(User.GetEmail()),
+				Attributes: templ.Attributes{
+					"title": User.GetDisplayName() + " avatar",
+				},
+			})
+			@avatar.Fallback() {
+				{ initials(User.GetDisplayName()) }
+			}
+		}
+		<div>
+			<strong class="font-medium">{ User.GetDisplayName() }</strong>
+			<br/>
+			<span class="text-muted-foreground">{ User.GetEmail() }</span>
+		</div>
+	</div>
+}

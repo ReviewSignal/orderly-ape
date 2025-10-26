@@ -1,0 +1,293 @@
+// SPDX-License-Identifier: MIT
+// SPDX-FileCopyrightText: Copyright (c) 2025 ReviewSignal
+
+package list_test
+
+import (
+	"github.com/ReviewSignal/orderly-ape/web/components/bitpoke/list"
+	"github.com/ReviewSignal/orderly-ape/web/components/templui/checkbox"
+	"github.com/ReviewSignal/orderly-ape/web/components/templui/input"
+	"github.com/ReviewSignal/orderly-ape/web/components/templui/label"
+)
+
+// Test component for simple editable list (Example 1)
+templ SimpleEditableList() {
+	@list.EditableList(list.EditableListProps{Name: "simple-list"}) {
+		@list.ListItem(list.ListItemProps{}) {
+			@input.Input(input.Props{
+				Placeholder: "Enter value",
+				Attributes: templ.Attributes{
+					"data-editable-list-item-input": "",
+				},
+			})
+		}
+	}
+}
+
+// Test component for simple JSON objects list (Example 2)
+templ JSONObjectsList() {
+	@list.EditableList(list.EditableListProps{Name: "json-list"}) {
+		@list.ListItem(list.ListItemProps{}) {
+			@input.Input(input.Props{Name: "name", Placeholder: "Enter name"})
+		}
+	}
+}
+
+// Test component for complex JSON objects list (Example 3)
+templ ComplexJSONObjectsList() {
+	@list.EditableList(list.EditableListProps{Name: "complex-list"}) {
+		@list.ListItem(list.ListItemProps{}) {
+			@input.Input(input.Props{Name: "name", Placeholder: "Enter name"})
+			<div class="flex items-center gap-2">
+				@checkbox.Checkbox(checkbox.Props{
+					ID:    "terms",
+					Name:  "agreements",
+					Value: "terms",
+				})
+				@label.Label(label.Props{
+					For: "terms",
+				}) {
+					Accept terms and conditions
+				}
+			</div>
+		}
+	}
+}
+
+// Test component for complex JSON object (Example 4)
+templ ComplexJSONObject() {
+	@list.EditableList(list.EditableListProps{Name: "keyed-list"}) {
+		@list.ListItem(list.ListItemProps{}) {
+			@input.Input(input.Props{Placeholder: "Enter key"})
+			<div class="flex items-center gap-2">
+				@checkbox.Checkbox(checkbox.Props{
+					ID:    "terms",
+					Name:  "agreements",
+					Value: "terms",
+				})
+				@label.Label(label.Props{
+					For: "terms",
+				}) {
+					Accept terms and conditions
+				}
+			</div>
+		}
+	}
+}
+
+// Test component for disabled editable list
+templ DisabledEditableList() {
+	@list.EditableList(list.EditableListProps{
+		Name:     "disabled-list",
+		Disabled: true,
+	}) {
+		@list.ListItem(list.ListItemProps{}) {
+			@input.Input(input.Props{Placeholder: "Enter value"})
+		}
+	}
+}
+
+// Test component for required editable list
+templ RequiredEditableList() {
+	@list.EditableList(list.EditableListProps{
+		Name:     "required-list",
+		Required: true,
+	}) {
+		@list.ListItem(list.ListItemProps{}) {
+			@input.Input(input.Props{Placeholder: "Enter value"})
+		}
+	}
+}
+
+// Test component for editable list with initial simple list value
+templ EditableListWithSimpleValue() {
+	@list.EditableList(list.EditableListProps{
+		Name:  "list-with-value",
+		Value: `["item1", "item2", "item3"]`,
+	}) {
+		@list.ListItem(list.ListItemProps{}) {
+			@input.Input(input.Props{Placeholder: "Enter value"})
+		}
+	}
+}
+
+// Test component for editable list with initial object list value
+templ EditableListWithObjectValue() {
+	@list.EditableList(list.EditableListProps{
+		Name:  "list-with-objects",
+		Value: `[{"name": "Alice"}, {"name": "Bob"}]`,
+	}) {
+		@list.ListItem(list.ListItemProps{}) {
+			@input.Input(input.Props{Name: "name", Placeholder: "Enter name"})
+		}
+	}
+}
+
+// Test component for editable list with initial keyed object value
+templ EditableListWithKeyedValue() {
+	@list.EditableList(list.EditableListProps{
+		Name:  "list-with-keyed",
+		Value: `{"key1": {"active": true}, "key2": {"active": false}}`,
+	}) {
+		@list.ListItem(list.ListItemProps{}) {
+			@input.Input(input.Props{Placeholder: "Enter key"})
+			<div class="flex items-center gap-2">
+				@checkbox.Checkbox(checkbox.Props{
+					Name:  "active",
+					Value: "true",
+				})
+				@label.Label(label.Props{}) {
+					Active
+				}
+			</div>
+		}
+	}
+}
+
+// Test component for editable list with select inputs
+templ EditableListWithSelect() {
+	@list.EditableList(list.EditableListProps{
+		Name: "list-with-select",
+	}) {
+		@list.ListItem(list.ListItemProps{}) {
+			@input.Input(input.Props{Name: "name", Placeholder: "Enter name"})
+			<select name="color" class="border rounded p-1">
+				<option value="">Select color</option>
+				<option value="red">Red</option>
+				<option value="blue">Blue</option>
+				<option value="green">Green</option>
+			</select>
+		}
+	}
+}
+
+// Test component for editable list with select and initial values
+templ EditableListWithSelectValue() {
+	@list.EditableList(list.EditableListProps{
+		Name:  "list-with-select-value",
+		Value: `[{"name": "Alice", "color": "red"}, {"name": "Bob", "color": "blue"}]`,
+	}) {
+		@list.ListItem(list.ListItemProps{}) {
+			@input.Input(input.Props{Name: "name", Placeholder: "Enter name"})
+			<select name="color" class="border rounded p-1">
+				<option value="">Select color</option>
+				<option value="red">Red</option>
+				<option value="blue">Blue</option>
+				<option value="green">Green</option>
+			</select>
+		}
+	}
+}
+
+// Test component for editable list with multi-select
+templ EditableListWithMultiSelect() {
+	@list.EditableList(list.EditableListProps{
+		Name: "list-with-multiselect",
+	}) {
+		@list.ListItem(list.ListItemProps{}) {
+			@input.Input(input.Props{Name: "name", Placeholder: "Enter name"})
+			<select name="tags" multiple class="border rounded p-1">
+				<option value="tag1">Tag 1</option>
+				<option value="tag2">Tag 2</option>
+				<option value="tag3">Tag 3</option>
+			</select>
+		}
+	}
+}
+
+// Test component for editable list with multi-select and initial values
+templ EditableListWithMultiSelectValue() {
+	@list.EditableList(list.EditableListProps{
+		Name:  "list-with-multiselect-value",
+		Value: `[{"name": "Alice", "tags": ["tag1", "tag2"]}, {"name": "Bob", "tags": ["tag3"]}]`,
+	}) {
+		@list.ListItem(list.ListItemProps{}) {
+			@input.Input(input.Props{Name: "name", Placeholder: "Enter name"})
+			<select name="tags" multiple class="border rounded p-1">
+				<option value="tag1">Tag 1</option>
+				<option value="tag2">Tag 2</option>
+				<option value="tag3">Tag 3</option>
+			</select>
+		}
+	}
+}
+
+// Test component for editable list with MaxItems
+templ EditableListWithMaxItems() {
+	@list.EditableList(list.EditableListProps{
+		Name:     "list-with-max",
+		MaxItems: 3,
+	}) {
+		@list.ListItem(list.ListItemProps{}) {
+			@input.Input(input.Props{Placeholder: "Enter value"})
+		}
+	}
+}
+
+// Test component for editable list with ExtraItems
+templ EditableListWithExtraItems() {
+	@list.EditableList(list.EditableListProps{
+		Name:       "list-with-extra",
+		ExtraItems: 2,
+	}) {
+		@list.ListItem(list.ListItemProps{}) {
+			@input.Input(input.Props{Placeholder: "Enter value"})
+		}
+	}
+}
+
+// Test component for editable list with ExtraItems=0
+templ EditableListWithNoExtraItems() {
+	@list.EditableList(list.EditableListProps{
+		Name:       "list-with-no-extra",
+		ExtraItems: 0,
+	}) {
+		@list.ListItem(list.ListItemProps{}) {
+			@input.Input(input.Props{Placeholder: "Enter value"})
+		}
+	}
+}
+
+// Test component for editable list with both MaxItems and ExtraItems
+templ EditableListWithMaxAndExtra() {
+	@list.EditableList(list.EditableListProps{
+		Name:       "list-with-both",
+		MaxItems:   5,
+		ExtraItems: 3,
+	}) {
+		@list.ListItem(list.ListItemProps{}) {
+			@input.Input(input.Props{Placeholder: "Enter value"})
+		}
+	}
+}
+
+// Test component for editable list with ReadOnly
+templ EditableListReadOnly() {
+	@list.EditableList(list.EditableListProps{
+		Name:     "list-readonly",
+		ReadOnly: true,
+		Value:    `["item1", "item2"]`,
+	}) {
+		@list.ListItem(list.ListItemProps{}) {
+			@input.Input(input.Props{Placeholder: "Enter value"})
+		}
+	}
+}
+
+// Test component for editable list with ReadOnly and complex data
+templ EditableListReadOnlyComplex() {
+	@list.EditableList(list.EditableListProps{
+		Name:     "list-readonly-complex",
+		ReadOnly: true,
+		Value:    `[{"name": "Alice", "role": "admin"}, {"name": "Bob", "role": "user"}]`,
+	}) {
+		@list.ListItem(list.ListItemProps{}) {
+			@input.Input(input.Props{Name: "name", Placeholder: "Enter name"})
+			<select name="role" class="border rounded p-1">
+				<option value="">Select role</option>
+				<option value="admin">Admin</option>
+				<option value="user">User</option>
+			</select>
+		}
+	}
+}

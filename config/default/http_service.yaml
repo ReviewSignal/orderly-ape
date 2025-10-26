@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    control-plane: controller-manager
+    app.kubernetes.io/name: orderly-ape
+    app.kubernetes.io/managed-by: kustomize
+  name: controller-manager-http-service
+  namespace: system
+spec:
+  ports:
+    - name: https
+      port: 80
+      protocol: TCP
+      targetPort: 8000
+  selector:
+    control-plane: controller-manager
+    app.kubernetes.io/name: orderly-ape

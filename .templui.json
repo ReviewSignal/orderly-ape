@@ -1,0 +1,7 @@
+{
+    "componentsDir": "web/components/templui",
+    "utilsDir": "web/utils",
+    "moduleName": "github.com/ReviewSignal/orderly-ape",
+    "jsDir": "public/js/",
+    "jsPublicPath": "/public/js"
+}

@@ -1,0 +1,123 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+    /* Light Theme */
+    --color-surface: var(--color-white);
+    --color-surface-alt: var(--color-zinc-50);
+    --color-on-surface: var(--color-slate-700);
+    --color-on-surface-strong: var(--color-slate-950);
+    --color-primary: var(--color-indigo-700);
+    --color-on-primary: var(--color-slate-50);
+    /* --color-secondary: var(--color-sky-600); */
+    /* --color-on-secondary: var(--color-slate-50); */
+    --color-outline: var(--color-slate-200);
+    --color-outline-strong: var(--color-slate-800);
+
+    /* Dark Theme */
+    --color-surface-dark: var(--color-slate-900);
+    --color-surface-dark-alt: var(--color-slate-800);
+    --color-on-surface-dark: var(--color-slate-300);
+    --color-on-surface-dark-strong: var(--color-white);
+    --color-primary-dark: var(--color-indigo-600);
+    --color-on-primary-dark: var(--color-slate-100);
+    /* --color-secondary-dark: var(--color-sky-700); */
+    /* --color-on-secondary-dark: var(--color-slate-100); */
+    --color-outline-dark: var(--color-slate-700);
+    --color-outline-dark-strong: var(--color-slate-300);
+
+    /* Shared Colors */
+    --color-info: var(--color-sky-400);
+    --color-on-info: var(--color-white);
+    --color-success: var(--color-green-600);
+    --color-on-success: var(--color-white);
+    --color-warning: var(--color-amber-400);
+    --color-on-warning: var(--color-white);
+    --color-danger: var(--color-red-600);
+    --color-on-danger: var(--color-white);
+
+    /* Border Radius */
+    --radius-radius: var(--radius-lg);
+
+    /* TemplUI Theme */
+    --color-border: var(--border);
+    --color-input: var(--input);
+    --color-background: var(--background);
+    --color-foreground: var(--foreground);
+    /* --color-primary: var(--primary); Defined in PenguinUI theme */
+    --color-primary-foreground: var(--primary-foreground);
+    --color-secondary: var(--secondary);
+    --color-secondary-foreground: var(--secondary-foreground);
+    --color-destructive: var(--destructive);
+    --color-destructive-foreground: var(--destructive-foreground);
+    --color-muted: var(--muted);
+    --color-muted-foreground: var(--muted-foreground);
+    --color-accent: var(--accent);
+    --color-accent-foreground: var(---accent-foreground);
+    --color-popover: var(--popover);
+    --color-popover-foreground: var(--popover-foreground);
+    --color-card: var(--card);
+    --color-card-foreground: var(--card-foreground);
+    --color-ring: var(--ring);
+
+    --radius-sm: calc(var(--radius) - 4px);
+    --radius-md: calc(var(--radius) - 2px);
+    --radius-lg: var(--radius);
+}
+
+:root {
+    --background: var(--color-surface);
+    --foreground: var(--color-on-surface);
+    --muted: hsl(220 14.3% 95.9%);
+    --muted-foreground: hsl(220 8.9% 46.1%);
+    --popover: var(--color-surface-alt);
+    --popover-foreground: var(--color-on-surface);
+    --card: hsl(0 0% 100%);
+    --card-foreground: hsl(224 71.4% 4.1%);
+    --border: var(--color-outline);
+    /* This is input border */
+    --input: var(--color-outline);
+    --primary: var(--color-primary);
+    --primary-foreground: var(--color-on-primary);
+    --secondary: oklch(0.967 0.001 286.375);
+    --secondary-foreground: oklch(0.21 0.006 285.885);
+    --accent: hsl(220 14.3% 95.9%);
+    --accent-foreground: hsl(220.9 39.3% 11%);
+    --destructive: hsl(0 84.2% 60.2%);
+    --destructive-foreground: hsl(210 20% 98%);
+    --ring: var(--color-primary);
+    --radius: 0.5rem;
+}
+
+.dark {
+    --background: var(--color-surface-dark);
+    --foreground: var(--color-on-surface-dark);
+    --muted: hsl(215 27.9% 16.9%);
+    --muted-foreground: hsl(217.9 10.6% 64.9%);
+    --popover: hsl(224 71.4% 4.1%);
+    --popover-foreground: hsl(210 20% 98%);
+    --card: hsl(224 71.4% 4.1%);
+    --card-foreground: hsl(210 20% 98%);
+    --border: hsl(215 27.9% 16.9%);
+    --input: var(--color-outline-dark);
+    --primary: var(--color-primary-dark);
+    --primary-foreground: var(--color-on-primary-dark);
+    --secondary: oklch(0.274 0.006 286.033);
+    --secondary-foreground: oklch(0.985 0 0);
+    --accent: hsl(215 27.9% 16.9%);
+    --accent-foreground: hsl(210 20% 98%);
+    --destructive: var(--color-danger);
+    --destructive-foreground: var(--color-on-danger);
+    --ring: var(--color-primary-dark);
+}
+
+[x-cloak] {
+    display: none !important;
+}
+
+@layer base {
+    * {
+        @apply border-border;
+    }
+}
