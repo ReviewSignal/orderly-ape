@@ -929,12 +929,32 @@
                         "type": "influxdb",
                         "uid": "${DS_INFLUXDB}"
                     },
-                    "query": "from(bucket: \"${bucket}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => \n      r.testid == \"${testid}\" and \n      r.scenario =~ /${scenario:regex}/ and\n      r.group =~ /${group:regex}/ and\n      r.location =~ /${location:regex}/ \n  )\n  |> filter(fn: (r) => \n      r._measurement == \"k6_http_req_duration\" and\n      (r._field == \"count\" or  r._field == \"mean\" or r._field == \"95_percentile\")\n  )\n  |> keep(columns: [\"_time\", \"_field\", \"_value\", \"name\", \"method\", \"status\", \"error\"])\n  |> map(fn: (r) => ({ r with _value: float(v: r._value) }))\n  |> group(columns: [\"name\", \"method\", \"status\", \"error\"])\n  |> reduce(\n    identity: {max_95_percentile: 0.0, mean_sum: 0.0, mean_count: 0.0, sum_count: 0.0},\n    fn: (r, accumulator) => ({\n        max_95_percentile: if r._field == \"95_percentile\" and r._value > accumulator.max_95_percentile then r._value else accumulator.max_95_percentile,\n        mean_sum: if r._field == \"mean\" then accumulator.mean_sum + r._value else accumulator.mean_sum,\n        mean_count: if r._field == \"mean\" then accumulator.mean_count + 1.0 else accumulator.mean_count,\n        sum_count: if r._field == \"count\" then accumulator.sum_count + r._value else accumulator.sum_count\n    })\n  )\n  |> map(fn: (r) => ({ \n      \"name\": r.name,\n      \"method\": r.method,\n      \"status\": r.status,\n      \"isError\": r.status == \"0\",\n      \"error\": r.error,\n      \"count\": r.sum_count,\n      \"95_percentile\": r.max_95_percentile, \n      \"mean\": r.mean_sum / r.mean_count\n  }))\n  |> group()\n  |> yield(name: \"aggregated_metrics\")",
+                    "query": "from(bucket: \"${bucket}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => \n      r.testid == \"${testid}\" and \n      r.scenario =~ /${scenario:regex}/ and\n      r.group =~ /${group:regex}/ and\n      r.location =~ /${location:regex}/ \n  )\n  |> filter(fn: (r) => r._measurement == \"k6_http_req_duration\" and r._field == \"count\")\n  |> group(columns: [\"name\", \"method\", \"status\", \"error\"])\n  |> sum()\n  |> keep(columns: [\"name\", \"method\", \"status\", \"error\", \"_value\"])\n  |> rename(columns: {_value: \"count\"})\n  |> group()",
                     "refId": "A"
+                },
+                {
+                    "datasource": {
+                        "type": "influxdb",
+                        "uid": "${DS_INFLUXDB}"
+                    },
+                    "query": "from(bucket: \"${bucket}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => \n      r.testid == \"${testid}\" and \n      r.scenario =~ /${scenario:regex}/ and\n      r.group =~ /${group:regex}/ and\n      r.location =~ /${location:regex}/ \n  )\n  |> filter(fn: (r) => r._measurement == \"k6_http_req_duration\" and r._field == \"95_percentile\")\n  |> group(columns: [\"name\", \"method\", \"status\", \"error\"])\n  |> max()\n  |> keep(columns: [\"name\", \"method\", \"status\", \"error\", \"_value\"])\n  |> rename(columns: {_value: \"95_percentile\"})\n  |> group()",
+                    "refId": "B"
+                },
+                {
+                    "datasource": {
+                        "type": "influxdb",
+                        "uid": "${DS_INFLUXDB}"
+                    },
+                    "query": "from(bucket: \"${bucket}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => \n      r.testid == \"${testid}\" and \n      r.scenario =~ /${scenario:regex}/ and\n      r.group =~ /${group:regex}/ and\n      r.location =~ /${location:regex}/ \n  )\n  |> filter(fn: (r) => r._measurement == \"k6_http_req_duration\" and r._field == \"mean\")\n  |> group(columns: [\"name\", \"method\", \"status\", \"error\"])\n  |> mean()\n  |> keep(columns: [\"name\", \"method\", \"status\", \"error\", \"_value\"])\n  |> map(fn: (r) => ({ r with isError: r.status == \"0\" }))\n  |> rename(columns: {_value: \"mean\"})\n  |> group()",
+                    "refId": "C"
                 }
             ],
             "title": "Requests",
             "transformations": [
+                {
+                    "id": "merge",
+                    "options": {}
+                },
                 {
                     "id": "organize",
                     "options": {
