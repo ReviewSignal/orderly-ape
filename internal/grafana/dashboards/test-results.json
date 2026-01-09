@@ -213,7 +213,7 @@
             },
             "gridPos": {
                 "h": 3,
-                "w": 4,
+                "w": 3,
                 "x": 4,
                 "y": 1
             },
@@ -278,8 +278,8 @@
             },
             "gridPos": {
                 "h": 3,
-                "w": 4,
-                "x": 8,
+                "w": 3,
+                "x": 7,
                 "y": 1
             },
             "id": 13,
@@ -343,8 +343,8 @@
             },
             "gridPos": {
                 "h": 3,
-                "w": 4,
-                "x": 12,
+                "w": 3,
+                "x": 10,
                 "y": 1
             },
             "id": 14,
@@ -374,11 +374,76 @@
                         "type": "influxdb",
                         "uid": "${DS_INFLUXDB}"
                     },
-                    "query": "from(bucket: \"${bucket}\")\n  |> range(start: v.timeRangeStart, stop:v.timeRangeStop)\n  |> filter(fn: (r) => \n      r.testid == \"${testid}\" and \n      r.scenario =~ /${scenario:regex}/ and\n      r.group =~ /${group:regex}/ and\n      r.location =~ /${location:regex}/ \n  )\n  |> filter(fn: (r) => r._measurement == \"k6_http_req_duration\")\n  |> filter(fn: (r) => r._field == \"95_percentile\")\n  |> filter(fn: (r) => r.status != \"0\" and int(v: r.status) < 500)\n  |> group()\n  |> max()",
+                    "query": "from(bucket: \"${bucket}\")\n  |> range(start: v.timeRangeStart, stop:v.timeRangeStop)\n  |> filter(fn: (r) => \n      r.testid == \"${testid}\" and \n      r.scenario =~ /${scenario:regex}/ and\n      r.group =~ /${group:regex}/ and\n      r.location =~ /${location:regex}/ \n  )\n  |> filter(fn: (r) => r._measurement == \"k6_http_req_duration\")\n  |> filter(fn: (r) => r._field == \"95_percentile\")\n  |> filter(fn: (r) => r.status != \"0\" and int(v: r.status) < 500)\n  |> group()\n  |> mean()",
                     "refId": "A"
                 }
             ],
             "title": "P95 Response Time",
+            "type": "stat"
+        },
+        {
+            "datasource": {
+                "type": "influxdb",
+                "uid": "${DS_INFLUXDB}"
+            },
+            "fieldConfig": {
+                "defaults": {
+                    "color": {
+                        "mode": "thresholds"
+                    },
+                    "mappings": [],
+                    "min": 0,
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "green",
+                                "value": null
+                            }
+                        ]
+                    },
+                    "unit": "ms"
+                },
+                "overrides": []
+            },
+            "gridPos": {
+                "h": 3,
+                "w": 4,
+                "x": 13,
+                "y": 1
+            },
+            "id": 17,
+            "interval": "${aggregation_interval}",
+            "options": {
+                "colorMode": "value",
+                "graphMode": "none",
+                "justifyMode": "center",
+                "orientation": "auto",
+                "percentChangeColorMode": "standard",
+                "reduceOptions": {
+                    "calcs": [
+                        "max"
+                    ],
+                    "fields": "",
+                    "values": false
+                },
+                "showPercentChange": false,
+                "text": {},
+                "textMode": "auto",
+                "wideLayout": true
+            },
+            "pluginVersion": "11.1.0",
+            "targets": [
+                {
+                    "datasource": {
+                        "type": "influxdb",
+                        "uid": "${DS_INFLUXDB}"
+                    },
+                    "query": "from(bucket: \"${bucket}\")\n  |> range(start: v.timeRangeStart, stop:v.timeRangeStop)\n  |> filter(fn: (r) => \n      r.testid == \"${testid}\" and \n      r.scenario =~ /${scenario:regex}/ and\n      r.group =~ /${group:regex}/ and\n      r.location =~ /${location:regex}/ \n  )\n  |> filter(fn: (r) => r._measurement == \"k6_http_req_duration\")\n  |> filter(fn: (r) => r._field == \"95_percentile\")\n  |> filter(fn: (r) => r.status != \"0\" and int(v: r.status) < 500)\n  |> filter(fn: (r) => r.name !~ /\\.(js|css|png|jpg|jpeg|gif|svg|woff2?|ico|webp)(\\?.*)?$/)\n  |> group()\n  |> mean()",
+                    "refId": "A"
+                }
+            ],
+            "title": "P95 Page Response",
             "type": "stat"
         },
         {
@@ -409,7 +474,7 @@
             "gridPos": {
                 "h": 3,
                 "w": 4,
-                "x": 16,
+                "x": 17,
                 "y": 1
             },
             "id": 15,
@@ -471,8 +536,8 @@
             },
             "gridPos": {
                 "h": 3,
-                "w": 4,
-                "x": 20,
+                "w": 3,
+                "x": 21,
                 "y": 1
             },
             "id": 16,
