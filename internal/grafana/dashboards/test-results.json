@@ -213,7 +213,7 @@
             },
             "gridPos": {
                 "h": 3,
-                "w": 4,
+                "w": 3,
                 "x": 4,
                 "y": 1
             },
@@ -278,8 +278,8 @@
             },
             "gridPos": {
                 "h": 3,
-                "w": 4,
-                "x": 8,
+                "w": 3,
+                "x": 7,
                 "y": 1
             },
             "id": 13,
@@ -343,8 +343,8 @@
             },
             "gridPos": {
                 "h": 3,
-                "w": 4,
-                "x": 12,
+                "w": 3,
+                "x": 10,
                 "y": 1
             },
             "id": 14,
@@ -374,11 +374,76 @@
                         "type": "influxdb",
                         "uid": "${DS_INFLUXDB}"
                     },
-                    "query": "from(bucket: \"${bucket}\")\n  |> range(start: v.timeRangeStart, stop:v.timeRangeStop)\n  |> filter(fn: (r) => \n      r.testid == \"${testid}\" and \n      r.scenario =~ /${scenario:regex}/ and\n      r.group =~ /${group:regex}/ and\n      r.location =~ /${location:regex}/ \n  )\n  |> filter(fn: (r) => r._measurement == \"k6_http_req_duration\")\n  |> filter(fn: (r) => r._field == \"95_percentile\" or r._field == \"count\")\n  |> filter(fn: (r) => r.status != \"0\" and int(v: r.status) < 500)\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> map(fn: (r) => ({ r with weighted_p95: r[\"95_percentile\"] * float(v: r.count) }))\n  |> group()\n  |> reduce(\n      fn: (r, accumulator) => ({\n        weighted_sum: accumulator.weighted_sum + r.weighted_p95,\n        total_count: accumulator.total_count + r.count,\n      }),\n      identity: {weighted_sum: 0.0, total_count: 0.0}\n  )\n  |> map(fn: (r) => ({ _time: now(), _field: \"weighted_p95_mean\", _value: r.weighted_sum / r.total_count }))",
+                    "query": "from(bucket: \"${bucket}\")\n  |> range(start: v.timeRangeStart, stop:v.timeRangeStop)\n  |> filter(fn: (r) => \n      r.testid == \"${testid}\" and \n      r.scenario =~ /${scenario:regex}/ and\n      r.group =~ /${group:regex}/ and\n      r.location =~ /${location:regex}/ \n  )\n  |> filter(fn: (r) => r._measurement == \"k6_http_req_duration\")\n  |> filter(fn: (r) => r._field == \"95_percentile\")\n  |> filter(fn: (r) => r.status != \"0\" and int(v: r.status) < 500)\n  |> group()\n  |> mean()",
                     "refId": "A"
                 }
             ],
             "title": "P95 Response Time",
+            "type": "stat"
+        },
+        {
+            "datasource": {
+                "type": "influxdb",
+                "uid": "${DS_INFLUXDB}"
+            },
+            "fieldConfig": {
+                "defaults": {
+                    "color": {
+                        "mode": "thresholds"
+                    },
+                    "mappings": [],
+                    "min": 0,
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "green",
+                                "value": null
+                            }
+                        ]
+                    },
+                    "unit": "ms"
+                },
+                "overrides": []
+            },
+            "gridPos": {
+                "h": 3,
+                "w": 4,
+                "x": 13,
+                "y": 1
+            },
+            "id": 17,
+            "interval": "${aggregation_interval}",
+            "options": {
+                "colorMode": "value",
+                "graphMode": "none",
+                "justifyMode": "center",
+                "orientation": "auto",
+                "percentChangeColorMode": "standard",
+                "reduceOptions": {
+                    "calcs": [
+                        "max"
+                    ],
+                    "fields": "",
+                    "values": false
+                },
+                "showPercentChange": false,
+                "text": {},
+                "textMode": "auto",
+                "wideLayout": true
+            },
+            "pluginVersion": "11.1.0",
+            "targets": [
+                {
+                    "datasource": {
+                        "type": "influxdb",
+                        "uid": "${DS_INFLUXDB}"
+                    },
+                    "query": "from(bucket: \"${bucket}\")\n  |> range(start: v.timeRangeStart, stop:v.timeRangeStop)\n  |> filter(fn: (r) => \n      r.testid == \"${testid}\" and \n      r.scenario =~ /${scenario:regex}/ and\n      r.group =~ /${group:regex}/ and\n      r.location =~ /${location:regex}/ \n  )\n  |> filter(fn: (r) => r._measurement == \"k6_http_req_duration\")\n  |> filter(fn: (r) => r._field == \"95_percentile\")\n  |> filter(fn: (r) => r.status != \"0\" and int(v: r.status) < 500)\n  |> filter(fn: (r) => r.name !~ /\\.(js|css|png|jpg|jpeg|gif|svg|woff2?|ico|webp)(\\?.*)?$/)\n  |> group()\n  |> mean()",
+                    "refId": "A"
+                }
+            ],
+            "title": "P95 Page Response",
             "type": "stat"
         },
         {
@@ -409,7 +474,7 @@
             "gridPos": {
                 "h": 3,
                 "w": 4,
-                "x": 16,
+                "x": 17,
                 "y": 1
             },
             "id": 15,
@@ -437,7 +502,7 @@
                         "type": "influxdb",
                         "uid": "${DS_INFLUXDB}"
                     },
-                    "query": "from(bucket: \"${bucket}\")\n  |> range(start: v.timeRangeStart, stop:v.timeRangeStop)\n  |> filter(fn: (r) => \n      r.testid == \"${testid}\" and \n      r.scenario =~ /${scenario:regex}/ and\n      r.location =~ /${location:regex}/ \n  )\n  |> filter(fn: (r) => r._measurement == \"k6_data_received\")\n  |> filter(fn: (r) => r._field == \"value\")\n  |> group()\n  |> sum()",
+                    "query": "from(bucket: \"${bucket}\")\n  |> range(start: v.timeRangeStart, stop:v.timeRangeStop)\n  |> filter(fn: (r) => \n      r.testid == \"${testid}\" and \n      r.scenario =~ /${scenario:regex}/ and\n      r.group =~ /${group:regex}/ and\n      r.location =~ /${location:regex}/ \n  )\n  |> filter(fn: (r) => r._measurement == \"k6_data_received\")\n  |> filter(fn: (r) => r._field == \"value\")\n  |> group()\n  |> sum()",
                     "refId": "A"
                 }
             ],
@@ -471,8 +536,8 @@
             },
             "gridPos": {
                 "h": 3,
-                "w": 4,
-                "x": 20,
+                "w": 3,
+                "x": 21,
                 "y": 1
             },
             "id": 16,
@@ -500,7 +565,7 @@
                         "type": "influxdb",
                         "uid": "${DS_INFLUXDB}"
                     },
-                    "query": "from(bucket: \"${bucket}\")\n  |> range(start: v.timeRangeStart, stop:v.timeRangeStop)\n  |> filter(fn: (r) => \n      r.testid == \"${testid}\" and \n      r.scenario =~ /${scenario:regex}/ and\n      r.location =~ /${location:regex}/ \n  )\n  |> filter(fn: (r) => r._measurement == \"k6_data_sent\")\n  |> filter(fn: (r) => r._field == \"value\")\n  |> group()\n  |> sum()",
+                    "query": "from(bucket: \"${bucket}\")\n  |> range(start: v.timeRangeStart, stop:v.timeRangeStop)\n  |> filter(fn: (r) => \n      r.testid == \"${testid}\" and \n      r.scenario =~ /${scenario:regex}/ and\n      r.group =~ /${group:regex}/ and\n      r.location =~ /${location:regex}/ \n  )\n  |> filter(fn: (r) => r._measurement == \"k6_data_sent\")\n  |> filter(fn: (r) => r._field == \"value\")\n  |> group()\n  |> sum()",
                     "refId": "A"
                 }
             ],
@@ -707,7 +772,7 @@
                         "uid": "${DS_INFLUXDB}"
                     },
                     "hide": false,
-                    "query": "from(bucket: \"${bucket}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => \n      r.testid == \"${testid}\" and \n      r.location =~ /${location:regex}/ \n  )\n  |> filter(fn: (r) => r[\"_measurement\"] == \"k6_http_req_failed\")\n  |> filter(fn: (r) => r[\"_field\"] == \"value\")\n  |> group(columns: [\"_measurement\"])\n  |> aggregateWindow(every: v.windowPeriod, fn: sum, createEmpty: false)",
+                    "query": "from(bucket: \"${bucket}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => \n      r.testid == \"${testid}\" and \n      r.scenario =~ /${scenario:regex}/ and\n      r.group =~ /${group:regex}/ and\n      r.location =~ /${location:regex}/ \n  )\n  |> filter(fn: (r) => r[\"_measurement\"] == \"k6_http_req_failed\")\n  |> filter(fn: (r) => r[\"_field\"] == \"value\")\n  |> group(columns: [\"_measurement\"])\n  |> aggregateWindow(every: v.windowPeriod, fn: sum, createEmpty: false)",
                     "refId": "D"
                 }
             ],
@@ -929,12 +994,32 @@
                         "type": "influxdb",
                         "uid": "${DS_INFLUXDB}"
                     },
-                    "query": "from(bucket: \"${bucket}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => \n      r.testid == \"${testid}\" and \n      r.scenario =~ /${scenario:regex}/ and\n      r.group =~ /${group:regex}/ and\n      r.location =~ /${location:regex}/ \n  )\n  |> filter(fn: (r) => \n      r._measurement == \"k6_http_req_duration\" and\n      (r._field == \"count\" or  r._field == \"mean\" or r._field == \"95_percentile\")\n  )\n  |> keep(columns: [\"_time\", \"_field\", \"_value\", \"name\", \"method\", \"status\", \"error\"])\n  |> map(fn: (r) => ({ r with _value: float(v: r._value) }))\n  |> group(columns: [\"name\", \"method\", \"status\", \"error\"])\n  |> reduce(\n    identity: {max_95_percentile: 0.0, mean_sum: 0.0, mean_count: 0.0, sum_count: 0.0},\n    fn: (r, accumulator) => ({\n        max_95_percentile: if r._field == \"95_percentile\" and r._value > accumulator.max_95_percentile then r._value else accumulator.max_95_percentile,\n        mean_sum: if r._field == \"mean\" then accumulator.mean_sum + r._value else accumulator.mean_sum,\n        mean_count: if r._field == \"mean\" then accumulator.mean_count + 1.0 else accumulator.mean_count,\n        sum_count: if r._field == \"count\" then accumulator.sum_count + r._value else accumulator.sum_count\n    })\n  )\n  |> map(fn: (r) => ({ \n      \"name\": r.name,\n      \"method\": r.method,\n      \"status\": r.status,\n      \"isError\": r.status == \"0\",\n      \"error\": r.error,\n      \"count\": r.sum_count,\n      \"95_percentile\": r.max_95_percentile, \n      \"mean\": r.mean_sum / r.mean_count\n  }))\n  |> group()\n  |> yield(name: \"aggregated_metrics\")",
+                    "query": "from(bucket: \"${bucket}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => \n      r.testid == \"${testid}\" and \n      r.scenario =~ /${scenario:regex}/ and\n      r.group =~ /${group:regex}/ and\n      r.location =~ /${location:regex}/ \n  )\n  |> filter(fn: (r) => r._measurement == \"k6_http_req_duration\" and r._field == \"count\")\n  |> group(columns: [\"name\", \"method\", \"status\", \"error\"])\n  |> sum()\n  |> keep(columns: [\"name\", \"method\", \"status\", \"error\", \"_value\"])\n  |> rename(columns: {_value: \"count\"})\n  |> group()",
                     "refId": "A"
+                },
+                {
+                    "datasource": {
+                        "type": "influxdb",
+                        "uid": "${DS_INFLUXDB}"
+                    },
+                    "query": "from(bucket: \"${bucket}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => \n      r.testid == \"${testid}\" and \n      r.scenario =~ /${scenario:regex}/ and\n      r.group =~ /${group:regex}/ and\n      r.location =~ /${location:regex}/ \n  )\n  |> filter(fn: (r) => r._measurement == \"k6_http_req_duration\" and r._field == \"95_percentile\")\n  |> group(columns: [\"name\", \"method\", \"status\", \"error\"])\n  |> max()\n  |> keep(columns: [\"name\", \"method\", \"status\", \"error\", \"_value\"])\n  |> rename(columns: {_value: \"95_percentile\"})\n  |> group()",
+                    "refId": "B"
+                },
+                {
+                    "datasource": {
+                        "type": "influxdb",
+                        "uid": "${DS_INFLUXDB}"
+                    },
+                    "query": "from(bucket: \"${bucket}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => \n      r.testid == \"${testid}\" and \n      r.scenario =~ /${scenario:regex}/ and\n      r.group =~ /${group:regex}/ and\n      r.location =~ /${location:regex}/ \n  )\n  |> filter(fn: (r) => r._measurement == \"k6_http_req_duration\" and r._field == \"mean\")\n  |> group(columns: [\"name\", \"method\", \"status\", \"error\"])\n  |> mean()\n  |> keep(columns: [\"name\", \"method\", \"status\", \"error\", \"_value\"])\n  |> map(fn: (r) => ({ r with isError: r.status == \"0\" }))\n  |> rename(columns: {_value: \"mean\"})\n  |> group()",
+                    "refId": "C"
                 }
             ],
             "title": "Requests",
             "transformations": [
+                {
+                    "id": "merge",
+                    "options": {}
+                },
                 {
                     "id": "organize",
                     "options": {
