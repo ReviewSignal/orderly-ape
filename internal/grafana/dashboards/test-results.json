@@ -502,7 +502,7 @@
                         "type": "influxdb",
                         "uid": "${DS_INFLUXDB}"
                     },
-                    "query": "from(bucket: \"${bucket}\")\n  |> range(start: v.timeRangeStart, stop:v.timeRangeStop)\n  |> filter(fn: (r) => \n      r.testid == \"${testid}\" and \n      r.scenario =~ /${scenario:regex}/ and\n      r.location =~ /${location:regex}/ \n  )\n  |> filter(fn: (r) => r._measurement == \"k6_data_received\")\n  |> filter(fn: (r) => r._field == \"value\")\n  |> group()\n  |> sum()",
+                    "query": "from(bucket: \"${bucket}\")\n  |> range(start: v.timeRangeStart, stop:v.timeRangeStop)\n  |> filter(fn: (r) => \n      r.testid == \"${testid}\" and \n      r.location =~ /${location:regex}/ \n  )\n  |> filter(fn: (r) => r._measurement == \"k6_data_received\")\n  |> filter(fn: (r) => r._field == \"value\")\n  |> group()\n  |> sum()",
                     "refId": "A"
                 }
             ],
@@ -565,7 +565,7 @@
                         "type": "influxdb",
                         "uid": "${DS_INFLUXDB}"
                     },
-                    "query": "from(bucket: \"${bucket}\")\n  |> range(start: v.timeRangeStart, stop:v.timeRangeStop)\n  |> filter(fn: (r) => \n      r.testid == \"${testid}\" and \n      r.scenario =~ /${scenario:regex}/ and\n      r.location =~ /${location:regex}/ \n  )\n  |> filter(fn: (r) => r._measurement == \"k6_data_sent\")\n  |> filter(fn: (r) => r._field == \"value\")\n  |> group()\n  |> sum()",
+                    "query": "from(bucket: \"${bucket}\")\n  |> range(start: v.timeRangeStart, stop:v.timeRangeStop)\n  |> filter(fn: (r) => \n      r.testid == \"${testid}\" and \n      r.location =~ /${location:regex}/ \n  )\n  |> filter(fn: (r) => r._measurement == \"k6_data_sent\")\n  |> filter(fn: (r) => r._field == \"value\")\n  |> group()\n  |> sum()",
                     "refId": "A"
                 }
             ],
@@ -1268,7 +1268,7 @@
                     "type": "influxdb",
                     "uid": "${DS_INFLUXDB}"
                 },
-                "definition": "import \"influxdata/influxdb/v1\"\nv1.tagValues(\n    bucket: \"${bucket}\",\n    tag: \"location\",\n    predicate: (r) => r.testid =~ /${testid:regex}/,\n)",
+                "definition": "import \"influxdata/influxdb/v1\"\nv1.tagValues(\n    bucket: \"${bucket}\",\n    tag: \"location\",\n    predicate: (r) => r.testid =~ /${testid:regex}/,\n    start: v.timeRangeStart,\n    stop: v.timeRangeStop,\n)",
                 "hide": 0,
                 "includeAll": true,
                 "label": "Location",
@@ -1276,7 +1276,7 @@
                 "name": "location",
                 "options": [],
                 "query": {
-                    "query": "import \"influxdata/influxdb/v1\"\nv1.tagValues(\n    bucket: \"${bucket}\",\n    tag: \"location\",\n    predicate: (r) => r.testid =~ /${testid:regex}/,\n)"
+                    "query": "import \"influxdata/influxdb/v1\"\nv1.tagValues(\n    bucket: \"${bucket}\",\n    tag: \"location\",\n    predicate: (r) => r.testid =~ /${testid:regex}/,\n    start: v.timeRangeStart,\n    stop: v.timeRangeStop,\n)"
                 },
                 "refresh": 1,
                 "regex": "",
@@ -1317,7 +1317,7 @@
                     "type": "influxdb",
                     "uid": "${DS_INFLUXDB}"
                 },
-                "definition": "import \"influxdata/influxdb/v1\"\n\nv1.tagValues(\n  bucket: \"${bucket}\",\n  tag: \"scenario\",\n  predicate: (r) => r.testid == \"${testid}\"\n)",
+                "definition": "import \"influxdata/influxdb/v1\"\n\nv1.tagValues(\n  bucket: \"${bucket}\",\n  tag: \"scenario\",\n  predicate: (r) => r.testid == \"${testid}\",\n  start: v.timeRangeStart,\n  stop: v.timeRangeStop,\n)",
                 "description": "",
                 "hide": 0,
                 "includeAll": true,
@@ -1326,7 +1326,7 @@
                 "name": "scenario",
                 "options": [],
                 "query": {
-                    "query": "import \"influxdata/influxdb/v1\"\n\nv1.tagValues(\n  bucket: \"${bucket}\",\n  tag: \"scenario\",\n  predicate: (r) => r.testid == \"${testid}\"\n)"
+                    "query": "import \"influxdata/influxdb/v1\"\n\nv1.tagValues(\n  bucket: \"${bucket}\",\n  tag: \"scenario\",\n  predicate: (r) => r.testid == \"${testid}\",\n  start: v.timeRangeStart,\n  stop: v.timeRangeStop,\n)"
                 },
                 "refresh": 1,
                 "regex": "",
@@ -1340,7 +1340,7 @@
                     "type": "influxdb",
                     "uid": "${DS_INFLUXDB}"
                 },
-                "definition": "import \"influxdata/influxdb/v1\"\n\nv1.tagValues(\n  bucket: \"${bucket}\",\n  tag: \"group\",\n  predicate: (r) =>  r.testid =~ /${testid:regex}/ and r.scenario =~ /${scenario:regex}/\n)",
+                "definition": "import \"influxdata/influxdb/v1\"\n\nv1.tagValues(\n  bucket: \"${bucket}\",\n  tag: \"group\",\n  predicate: (r) =>  r.testid =~ /${testid:regex}/ and r.scenario =~ /${scenario:regex}/,\n  start: v.timeRangeStart,\n  stop: v.timeRangeStop,\n)",
                 "hide": 0,
                 "includeAll": true,
                 "label": "Group",
@@ -1348,7 +1348,7 @@
                 "name": "group",
                 "options": [],
                 "query": {
-                    "query": "import \"influxdata/influxdb/v1\"\n\nv1.tagValues(\n  bucket: \"${bucket}\",\n  tag: \"group\",\n  predicate: (r) =>  r.testid =~ /${testid:regex}/ and r.scenario =~ /${scenario:regex}/\n)"
+                    "query": "import \"influxdata/influxdb/v1\"\n\nv1.tagValues(\n  bucket: \"${bucket}\",\n  tag: \"group\",\n  predicate: (r) =>  r.testid =~ /${testid:regex}/ and r.scenario =~ /${scenario:regex}/,\n  start: v.timeRangeStart,\n  stop: v.timeRangeStop,\n)"
                 },
                 "refresh": 1,
                 "regex": "",
@@ -1362,7 +1362,7 @@
                     "type": "influxdb",
                     "uid": "${DS_INFLUXDB}"
                 },
-                "definition": "import \"influxdata/influxdb/v1\"\nv1.tagValues(\n    bucket: \"${bucket}\",\n    tag: \"_measurement\",\n    predicate: (r) => r.testid == \"${testid}\" and r._measurement !~ /k6_(data_sent|data_received|error_rate|iterations|iteration_duration|(vus|http|browser)(_.)?)/ and r._measurement !~ /kubernetes_.*/,\n)",
+                "definition": "import \"influxdata/influxdb/v1\"\nv1.tagValues(\n    bucket: \"${bucket}\",\n    tag: \"_measurement\",\n    predicate: (r) => r.testid == \"${testid}\" and r._measurement !~ /k6_(data_sent|data_received|error_rate|iterations|iteration_duration|(vus|http|browser)(_.)?)/ and r._measurement !~ /kubernetes_.*/,\n    start: v.timeRangeStart,\n    stop: v.timeRangeStop,\n)",
                 "hide": 0,
                 "includeAll": true,
                 "label": "Custom Measurements",
@@ -1370,7 +1370,7 @@
                 "name": "measurement",
                 "options": [],
                 "query": {
-                    "query": "import \"influxdata/influxdb/v1\"\nv1.tagValues(\n    bucket: \"${bucket}\",\n    tag: \"_measurement\",\n    predicate: (r) => r.testid == \"${testid}\" and r._measurement !~ /k6_(data_sent|data_received|error_rate|iterations|iteration_duration|(vus|http|browser)(_.)?)/ and r._measurement !~ /kubernetes_.*/,\n)"
+                    "query": "import \"influxdata/influxdb/v1\"\nv1.tagValues(\n    bucket: \"${bucket}\",\n    tag: \"_measurement\",\n    predicate: (r) => r.testid == \"${testid}\" and r._measurement !~ /k6_(data_sent|data_received|error_rate|iterations|iteration_duration|(vus|http|browser)(_.)?)/ and r._measurement !~ /kubernetes_.*/,\n    start: v.timeRangeStart,\n    stop: v.timeRangeStop,\n)"
                 },
                 "refresh": 1,
                 "regex": "",
